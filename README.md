@@ -1,75 +1,84 @@
-# React + TypeScript + Vite
+# Telegram Mini App - Донаты для стримеров
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Полнофункциональное веб-приложение для системы донатов стримерам, построенное на React + TypeScript + Vite + Tailwind CSS.
 
-Currently, two official plugins are available:
+## 🎯 Основные возможности
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+### Для зрителей:
+- 💰 Просмотр каталога активных стримеров
+- 🎁 Отправка донатов с персонализированными сообщениями
+- 💳 Пополнение баланса
+- 📊 История транзакций и донатов
+- 🎨 Предпросмотр алертов перед отправкой
 
-## React Compiler
+### Для стримеров:
+- 📺 Управление стримом (Старт/Стоп)
+- 📈 Dashboard с аналитикой и статистикой
+- 🎨 Конструктор алертов (цвета, шрифты, длительность)
+- 🛡️ Управление стоп-словами для модерации
+- ⚙️ Настройка пассивного дохода для зрителей
+- 🔗 Виджет для OBS с копированием ссылки
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+## 🛠 Технологический стек
 
-Note: This will impact Vite dev & build performances.
+- **React** - Progressive JavaScript Framework
+- **TypeScript** - Type-safe JavaScript
+- **Vite** - Next Generation Frontend Tooling
+- **Tailwind CSS** - Utility-first CSS framework
+- **React Router** - Official router for Vue.js
+- **Boostrap** - Beautiful & consistent icons
+- **Telegram Web App SDK** - Integration with Telegram
 
-## Expanding the ESLint configuration
+## 🚀 Особенности реализации
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Lazy Loading
+Все страницы загружаются динамически для оптимизации производительности:
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Telegram Web App Integration
+Полная интеграция с Telegram Web App SDK:
+- Haptic Feedback
+- Main Button / Back Button
+- Cloud Storage
+- Theme Colors
+- Platform Detection
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### Responsive Design
+- Адаптивный дизайн для мобильных устройств
+- Нижняя навигация для удобства использования одной рукой
+- Оптимизировано для Telegram Mini App
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+### Mock Data
+Полностью функциональный UI с mock данными для демонстрации всех возможностей приложения.
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 🎨 UI/UX Features
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- Градиентные кнопки и header'ы
+- Анимации и transitions
+- Интерактивные карточки стримеров
+- Live preview алертов
+- Progress bars для целей стримеров
+- Real-time статистика
+- Модальные окна для действий
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## 📱 Навигация
+
+### Для зрителей:
+- Главная (Каталог стримеров)
+- Профиль (История и транзакции)
+
+### Для стримеров:
+- Главная (Каталог)
+- Dashboard (Управление стримом)
+- Настройки (Алерты, Стоп-слова, Пассивный доход)
+- Профиль
+
+## 🔧 Разработка
+
+Приложение использует Vite для быстрой разработки и hot module replacement (HMR).
+
+## 📝 Примечания
+
+- Все функции работают с mock данными
+- Для production требуется backend интеграция (рекомендуется Supabase)
+- Система модерации с проверкой стоп-слов
+- Поддержка темной/светлой темы Telegram
