@@ -11,6 +11,9 @@
   },
   "dependencies": {
     "@telegram-apps/sdk": "^2.11.3",
+    "@types/axios": "^0.9.36",
+    "axios": "^1.13.6",
+    "prettier": "^3.8.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
   },
