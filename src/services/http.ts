@@ -1,79 +1,127 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
+// src/services/http.ts
+import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosError } from 'axios'
 
-export const API_BASE_URL = 'https://api.tipbot.app/v1';
+
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.tipbot.gg/v1'
+export const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL || window.location.origin
+export const ENVIRONMENT = import.meta.env.VITE_ENVIRONMENT || 'development'
+
+
+if (ENVIRONMENT === 'development') {
+  console.log(`[HTTP] Environment: ${ENVIRONMENT}`)
+  console.log(`[HTTP] API URL: ${API_BASE_URL}`)
+  console.log(`[HTTP] Frontend URL: ${FRONTEND_URL}`)
+}
+
 
 export const http: AxiosInstance = axios.create({
-    baseURL: API_BASE_URL,
-    headers: {
-        'Content-Type': 'application/json',
-    },
-    timeout: 10000,
-});
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+    'X-App-Origin': FRONTEND_URL,
+    'X-Environment': ENVIRONMENT,
+  },
+  timeout: 10000,
+  withCredentials: false,
+})
 
 http.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem('auth_token')
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`
-        }
-        return config
-    },
-    (error: AxiosError) => Promise.reject(error)
+  (config) => {
+    const token = localStorage.getItem('auth_token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    // ✅ Добавляем Telegram initData если есть
+    const tgInitData = window.Telegram?.WebApp?.initData
+    if (tgInitData) {
+      config.headers['X-Telegram-Init-Data'] = tgInitData
+    }
+    return config
+  },
+  (error: AxiosError) => Promise.reject(error)
 )
+
 
 http.interceptors.response.use(
-    (response) => response.data,
-    (error: AxiosError) => {
-        if (error.response?.status === 401){
-            console.warn('Unauthorized: token expired')
-        }
-        if (error.response?.status === 403){
-            console.warn('Forbidden: insufficient permissions')
-        }
-        if (error.response?.status === 404){
-            console.warn('Not Found: resource not found')
-        }
-        if (error.response?.status === 500){
-            console.error('Internal Server Error: server error')
-        }
-        if(error.response?.status === 429){
-            console.warn('Too Many Requests: rate limit exceeded')
-        }
-        if(error.response?.status === 502){
-            console.error('Bad Gateway: server error')
-        }
-        if(error.response?.status === 503){
-            console.error('Service Unavailable: server error')
-        }
-        if(error.response?.status === 504){
-            console.error('Gateway Timeout: server error')
-        }
-        return Promise.reject(error)
-    }
-)
-export const apiRequest = async <T = any> (
-    config: AxiosRequestConfig = {}
-): Promise<T> => {
-    try {
-        const response = await http.request<T>(config)
-        return response.data
-    } catch (error) {
-        if (axios.isAxiosError(error)) {
-            throw error
-        }
-        throw error
+  (response) => response.data,
+  (error: AxiosError) => {
+    const status = error.response?.status
+    const data = error.response?.data as { message?: string } | undefined
+    const message = data?.message ?? 'Произошла ошибка'
+
+
+    if (ENVIRONMENT === 'development') {
+      console.error(`[API Error ${status}]`, message)
     }
 
+    if (status === 401) {
+      console.warn('Unauthorized: token expired')
+      localStorage.removeItem('auth_token')
+      // Не делаем редирект здесь — это делает AuthContext
+    }
+    if (status === 403) {
+      console.warn('Forbidden: insufficient permissions')
+    }
+    if (status === 404) {
+      console.warn('Not Found: resource not found')
+    }
+    if (status === 429) {
+      console.warn('Too Many Requests: rate limit exceeded')
+    }
+    if (status && status >= 500) {
+      console.error('Server Error:', status)
+    }
+
+    return Promise.reject(error)
+  }
+)
+
+
+export const apiRequest = async <T = any>(
+  config: AxiosRequestConfig = {}
+): Promise<T> => {
+  try {
+    const response = await http.request<T>(config)
+    return response as T
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw error
+    }
+    throw error
+  }
 }
-export const get = <T = any>(url: string, config?: AxiosRequestConfig): Promise<T> => {
-    return apiRequest<T>({ ...config, url, method: 'GET' })
+
+
+export const get = <T = any>(
+  url: string, 
+  config?: AxiosRequestConfig
+): Promise<T> => {
+  return apiRequest<T>({ ...config, url, method: 'GET' })
 }
-export const post = <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
-    return apiRequest<T>({ ...config, url, method: 'POST', data })
+
+export const post = <T = any>(
+  url: string, 
+  data?: any, 
+  config?: AxiosRequestConfig
+): Promise<T> => {
+  return apiRequest<T>({ ...config, url, method: 'POST', data })
 }
-export const put = <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
-    return apiRequest<T>({ ...config, url, method: 'PUT', data })
-}   
-export const del = <T = any>(url: string, config?: AxiosRequestConfig): Promise<T> => {
-    return apiRequest<T>({ ...config, url, method: 'DELETE' })
+
+export const put = <T = any>(
+  url: string, 
+  data?: any, 
+  config?: AxiosRequestConfig
+): Promise<T> => {
+  return apiRequest<T>({ ...config, url, method: 'PUT', data })
 }
+
+export const del = <T = any>(
+  url: string, 
+  config?: AxiosRequestConfig
+): Promise<T> => {
+  return apiRequest<T>({ ...config, url, method: 'DELETE' })
+}
+
+
+export const isDev = () => ENVIRONMENT === 'development'
+export const isProd = () => ENVIRONMENT === 'production'
