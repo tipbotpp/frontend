@@ -54,3 +54,13 @@ export interface StreamerSession{
     endTime?: Date
     totalEarned: number
 }
+
+export interface Transaction {
+    id: string
+    userId: string
+    amount: number
+    type: 'deposit' | 'withdrawal'
+    status: 'pending' | 'completed' | 'failed'
+    createdAt: Date
+    paymentMethod?: string
+}
