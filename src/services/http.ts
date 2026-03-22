@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
+import axios, {type AxiosInstance, type AxiosRequestConfig, type AxiosError} from 'axios'
 
 export const API_BASE_URL = 'https://api.tipbot.app/v1';
 

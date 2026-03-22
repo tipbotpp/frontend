@@ -1,13 +1,13 @@
-import {http, apiRequest} from './http'
+import {apiRequest} from './http'
 
-import type {
-  User,
-  Streamer,
-  Donation,
-  StreamSession,
-  Transaction,
-  AlertSettings,
-  PassiveIncomeSettings,
+import {
+    type Transaction,
+  type User,
+  type Streamer,
+  type Donation,
+  type StreamerSession,
+  type AlertSettings,
+  type PassiveIncomeSettings,
 } from '../types'
 
 /**
@@ -18,7 +18,7 @@ export const userApi = {
   async getProfile(): Promise<User> {
     return apiRequest<User>({
       method: 'GET',
-      url: '/user/prfile',
+      url: '/user/profile',
     })
   },
 
@@ -54,7 +54,7 @@ export const streamerApi = {
     async getById(id:string): Promise<Streamer> {
         return apiRequest<Streamer> ({
             method: 'GET',
-            url: `/stremers/${10}`,
+            url: `/streamers/${id}`,
         })
     },
 
@@ -70,7 +70,7 @@ export const streamerApi = {
         id: string,
         settings: Partial<Pick<Streamer, 'alertSettings' | 'stopWords' | 'passiveIncome'>>
     ) : Promise<Streamer> {
-        return apiRequest<Stream>({
+        return apiRequest<Streamer>({
             method: "PATCH",
             url: `/streamers/${id}/settings`,
             data:settings,
@@ -113,6 +113,147 @@ export const donationApi = {
 }
 
 /**
- * Streamer Session API
- * 
+ * Stream Session API
+ * @see https://api.tipbot.app/v1/sessions
  */
+export const sessionApi = {
+    async start(streamerId: string): Promise<StreamerSession> {
+      return apiRequest<StreamerSession>({
+        method: 'POST',
+        url: `/streamers/${streamerId}/sessions`,
+      })
+    },
+  
+    async end(sessionId: string): Promise<StreamerSession> {
+      return apiRequest<StreamerSession>({
+        method: 'PATCH',
+        url: `/sessions/${sessionId}/end`,
+      })
+    },
+
+    async getCurrent(streamerId: string): Promise<StreamerSession | null> {
+        return apiRequest<StreamerSession | null>({
+            method: 'GET',
+            url: `/streamers/${streamerId}/sessions/current`,
+            validateStatus: (status) => status < 500,
+        }).catch((error) => {
+            if (error?.response?.status === 404) return null
+            throw error
+        })
+    },
+
+    async getStatus(sessionId: string): Promise<{
+        totalEarned: number
+        donationCount: number
+        topDonor?: {name: string; amount: number}
+    }> {
+        return apiRequest({
+            method: 'GET',
+            url: `/sessions/${sessionId}/status`,
+        })
+    },
+}
+
+/**
+ * Transaction API
+ * @see https://api.tipbot.app/v1/transactions
+ */
+
+export const transactionApi ={
+    async getHistory(userId: string): Promise<Transaction[]> {
+        return apiRequest<Transaction[]>({
+            method: 'GET',
+            url: `/users/${userId}/transactions`,
+        })
+    },
+    
+    async deposit(userId: string, amount:number, paymentMethod?: string): Promise<Transaction> {
+        return apiRequest<Transaction>({
+            method: 'POST',
+            url: `/users/${userId}/deposit`,
+            data: {
+                amount,
+                payment_method: paymentMethod,
+            },
+        })
+    },
+}
+
+/**
+ * Alert Settings API
+ * @see https://api.tipbot.app/v1/alerts
+ */
+
+export const alertApi = {
+    async getSettings(streamerId: string): Promise<AlertSettings> {
+        return apiRequest<AlertSettings> ({
+            method: 'GET',
+            url: `/streamers/${streamerId}/alerts`,
+        })
+    },
+
+    async updateSettings(
+        streamerId: string,
+        settings: Partial<AlertSettings>
+    ): Promise<AlertSettings> {
+        return apiRequest<AlertSettings> ({
+            method: 'PATCH',
+            url: `/streamers/${streamerId}/alerts`,
+            data: settings,
+        })
+    },
+}
+
+/**
+ * Stop Words API
+ * @see https://api.tipbot.app/v1/stop-words
+ */
+
+export const stopWordsApi = {
+    async getAll(streamerId: string): Promise<string[]> {
+        return apiRequest<string[]>({
+            method: 'GET',
+            url: `/streamers/${streamerId}/stop-words`
+        })
+    },
+
+    async add(streamerId: string, word:string): Promise<string[]> {
+        return apiRequest<string[]>({
+            method: 'POST',
+            url: `/streamers/${streamerId}/stop-words`,
+            data: {word},
+        })
+    },
+
+    async remove(streamerId: string, word:string): Promise<void>{
+        return apiRequest<void>({
+            method: 'DELETE',
+            url: `/streamers/${streamerId}/stop-word/${encodeURIComponent(word)}`,
+        })
+    },
+}
+
+/**
+ *  Passive Income API
+ * @see https://api.tipbot.app/v1/passive-income
+ */
+
+export const passiveIncomeAPI = {
+    async getSettings(streamerId: string): Promise<PassiveIncomeSettings> {
+        return apiRequest<PassiveIncomeSettings>({
+            method: 'GET',
+            url: `/streamer/${streamerId}/passive-income`,
+        })
+    },
+
+    async updateSetting(
+        streamerId: string,
+        settings: Partial<PassiveIncomeSettings>
+    ): Promise<PassiveIncomeSettings>{
+        return apiRequest<PassiveIncomeSettings>({
+            method: 'PATCH',
+            url: `/streamer/${streamerId}/passive-income`,
+            data: settings,
+        })
+    },
+}
