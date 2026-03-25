@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Search, Plus, TrendingUp } from 'lucide-react';
 import { mockUser, mockStreamers } from '../mock-data';
