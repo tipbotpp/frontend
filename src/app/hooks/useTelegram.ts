@@ -5,17 +5,23 @@ export function useTelegram() {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    // Инициализация Telegram Web App
-    if (WebApp) {
+    // Инициализация Telegram Web App (без падения в браузере/эмуляторе)
+    if (!WebApp) return;
+
+    if (typeof WebApp.ready === 'function') {
       WebApp.ready();
-      WebApp.expand();
-      
-      // Настройка темы
-      WebApp.setHeaderColor('#6366f1');
-      WebApp.setBackgroundColor('#f9fafb');
-      
-      setIsReady(true);
     }
+    if (typeof WebApp.expand === 'function') {
+      WebApp.expand();
+    }
+    if (typeof WebApp.setHeaderColor === 'function') {
+      WebApp.setHeaderColor('#6366f1');
+    }
+    if (typeof WebApp.setBackgroundColor === 'function') {
+      WebApp.setBackgroundColor('#f9fafb');
+    }
+
+    setIsReady(typeof WebApp.ready === 'function');
   }, []);
 
   return {
