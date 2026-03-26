@@ -1,27 +1,31 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { RouterProvider } from 'react-router';
 import { router } from './routes';
 import { Toaster } from './components/ui/sonner';
-import { useTelegram } from './hooks/useTelegram';
+import { useAuth } from './hooks/useAuth';
 import { WelcomeScreen } from './components/WelcomeScreen';
+import { AuthPage } from './pages/AuthPage';
 
 export default function App() {
-  const telegram = useTelegram();
+  const { isAuthenticated, isLoading } = useAuth();
   const [showWelcome, setShowWelcome] = useState(true);
 
-  useEffect(() => {
-    // Инициализация Telegram Web App при загрузке
-    if (telegram.isReady) {
-      console.log('Telegram Web App initialized');
-      console.log('User:', telegram.user);
-      console.log('Platform:', telegram.platform);
-    }
-  }, [telegram.isReady]);
-
+  // Показываем welcome экран пока загружается
   if (showWelcome) {
     return <WelcomeScreen onComplete={() => setShowWelcome(false)} />;
   }
 
+  // Если авторизация в процессе или не успешна - показываем экран авторизации
+  if (isLoading || !isAuthenticated) {
+    return (
+      <>
+        <AuthPage />
+        <Toaster />
+      </>
+    );
+  }
+
+  // Если авторизованы - показываем основное приложение
   return (
     <>
       <RouterProvider router={router} />
