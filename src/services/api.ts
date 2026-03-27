@@ -11,7 +11,8 @@ import {
 } from '../types'
 
 /**
-*@see https://tipbot.qu1nqqy.ru/user
+ * User API
+*@see https://dev.api.tipbot.qu1nqqy.ru/user
 */
 
 export const userApi = {
@@ -41,7 +42,7 @@ export const userApi = {
 
 /**
  * Streamer API
- * @see https://tipbot.qu1nqqy.ru/streamers
+ * @see https://dev.api.tipbot.qu1nqqy.ru/streamers
  */
 export const streamerApi = {
     async getAll(): Promise<Streamer[]> {
@@ -80,7 +81,7 @@ export const streamerApi = {
 
 /**
  * Donation API
- * @see https://tipbot.qu1nqqy.ru/donations
+ * @see https://dev.api.tipbot.qu1nqqy.ru/donations
  */
 
 export const donationApi = {
@@ -114,7 +115,7 @@ export const donationApi = {
 
 /**
  * Stream Session API
- * @see https://tipbot.qu1nqqy.ru/sessions
+ * @see https://dev.api.tipbot.qu1nqqy.ru/sessions
  */
 export const sessionApi = {
     async start(streamerId: string): Promise<StreamerSession> {
@@ -156,7 +157,7 @@ export const sessionApi = {
 
 /**
  * Transaction API
- * @see https://tipbot.qu1nqqy.ru/transactions
+ * @see https://dev.api.tipbot.qu1nqqy.ru/transactions
  */
 
 export const transactionApi ={
@@ -181,7 +182,7 @@ export const transactionApi ={
 
 /**
  * Alert Settings API
- * @see https://tipbot.qu1nqqy.ru/alerts
+ * @see https://dev.api.tipbot.qu1nqqy.ru/alerts
  */
 
 export const alertApi = {
@@ -206,7 +207,7 @@ export const alertApi = {
 
 /**
  * Stop Words API
- * @see https://tipbot.qu1nqqy.ru/stop-words
+ * @see https://dev.api.tipbot.qu1nqqy.ru/stop-words
  */
 
 export const stopWordsApi = {
@@ -235,7 +236,7 @@ export const stopWordsApi = {
 
 /**
  *  Passive Income API
- * @see https://tipbot.qu1nqqy.ru/passive-income
+ * @see https://dev.api.tipbot.qu1nqqy.ru/passive-income
  */
 
 export const passiveIncomeAPI = {
