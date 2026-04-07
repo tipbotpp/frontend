@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Lock, AlertCircle, RefreshCw } from 'lucide-react';
+import { Lock, AlertCircle, RefreshCw, Monitor } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 export function AuthPage() {
@@ -7,6 +7,11 @@ export function AuthPage() {
 
   const handleRetry = () => {
     checkAuth();
+  };
+
+  const isLocalMode = () => {
+    const tgInitData = window.Telegram?.WebApp?.initData
+    return !tgInitData || tgInitData === ''
   };
 
   return (
@@ -41,7 +46,33 @@ export function AuthPage() {
 
         {/* Status */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-          {isTelegramReady && telegramUser ? (
+          {isLocalMode() ? (
+            // Локальный режим
+            <>
+              <div className="flex items-center justify-center gap-2 text-blue-600 mb-4">
+                <Monitor className="w-5 h-5" />
+                <span className="font-medium">Локальный режим (mock token)</span>
+              </div>
+              <p className="text-sm text-gray-500">
+                Используется токен для локальной разработки
+              </p>
+              {error && (
+                <p className="text-sm text-red-600 bg-red-50 rounded-lg p-3 mt-3">
+                  {error}
+                </p>
+              )}
+              {error && (
+                <button
+                  onClick={handleRetry}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors mt-3"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span>Повторить</span>
+                </button>
+              )}
+            </>
+          ) : isTelegramReady && telegramUser ? (
+            // Mini App режим - Telegram подключен
             <>
               <div className="flex items-center justify-center gap-2 text-green-600 mb-4">
                 <Lock className="w-5 h-5" />
@@ -66,6 +97,7 @@ export function AuthPage() {
               </div>
             </>
           ) : (
+            // Mini App режим - ошибка или ожидание
             <div className="flex flex-col items-center gap-4">
               {!isTelegramReady ? (
                 <>
@@ -103,7 +135,11 @@ export function AuthPage() {
 
         {/* Info */}
         <div className="text-sm text-gray-500">
-          <p>Автоматическая авторизация через Telegram</p>
+          <p>
+            {isLocalMode()
+              ? 'Локальная разработка с mock токеном'
+              : 'Автоматическая авторизация через Telegram'}
+          </p>
         </div>
       </motion.div>
     </div>

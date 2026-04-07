@@ -25,16 +25,21 @@ export const http: AxiosInstance = axios.create({
   withCredentials: false,
 })
 
+// Определяем режим работы: local или miniapp
+export const isLocalMode = () => {
+  const tgInitData = window.Telegram?.WebApp?.initData
+  return !tgInitData || tgInitData === ''
+}
+
+// Mock token для локальной разработки
+export const MOCK_TOKEN = import.meta.env.VITE_MOCK_TOKEN || 'mock_token_q9830md893sn9msdmafo'
+
+// Request interceptor - только JWT авторизация
 http.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('auth_token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
-    }
-    // ✅ Добавляем Telegram initData если есть
-    const tgInitData = window.Telegram?.WebApp?.initData
-    if (tgInitData) {
-      config.headers['X-Telegram-Init-Data'] = tgInitData
     }
     return config
   },

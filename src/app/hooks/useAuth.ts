@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTelegram } from './useTelegram';
-import { userApi } from '../../services/api';
+import { authApi, userApi } from '../../services/api';
+import { isLocalMode, MOCK_TOKEN } from '../../services/http';
 import type { User } from '../../types';
 
 interface AuthState {
@@ -23,36 +24,63 @@ export function useAuth() {
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      // Если мы в Telegram и есть initData - пробуем авторизоваться
-      if (telegram.isReady && telegram.user) {
-        const userData = await userApi.getProfile();
+      // Проверяем наличие JWT токена
+      const existingToken = localStorage.getItem('auth_token');
+
+      if (existingToken) {
+        // Токен есть - проверяем валидность через /users/me
+        console.log('[Auth] Found existing token, verifying...')
+        const userData = await userApi.getMe();
         setState({
           user: userData,
           isLoading: false,
           isAuthenticated: true,
           error: null,
         });
-      } else {
-        // Если не в Telegram или нет initData
+        return;
+      }
+
+      // Токена нет - авторизуемся
+      console.log('[Auth] No token, authenticating...')
+
+      // Получаем initData напрямую из window.Telegram
+      const tgInitData = window.Telegram?.WebApp?.initData;
+      const localMode = !tgInitData || tgInitData === '';
+
+      if (localMode) {
+        // Локальный режим - используем mock token
+        console.log('[Auth] Local mode: authenticating with mock token')
+        const { token, user } = await authApi.login(MOCK_TOKEN);
+        localStorage.setItem('auth_token', token);
         setState({
-          user: null,
+          user,
           isLoading: false,
-          isAuthenticated: false,
-          error: telegram.isReady
-            ? 'Не удалось получить данные Telegram'
-            : 'Приложение должно быть открыто в Telegram',
+          isAuthenticated: true,
+          error: null,
+        });
+      } else {
+        // Mini App режим - используем Telegram initData
+        console.log('[Auth] Mini App mode: authenticating with initData')
+        const { token, user } = await authApi.login(tgInitData);
+        localStorage.setItem('auth_token', token);
+        setState({
+          user,
+          isLoading: false,
+          isAuthenticated: true,
+          error: null,
         });
       }
     } catch (error: any) {
       console.error('Auth error:', error);
+      localStorage.removeItem('auth_token');
       setState({
         user: null,
         isLoading: false,
         isAuthenticated: false,
-        error: error?.response?.data?.message || 'Ошибка авторизации',
+        error: error?.message || 'Ошибка авторизации',
       });
     }
-  }, [telegram.isReady, telegram.user]);
+  }, []);
 
   const logout = useCallback(() => {
     localStorage.removeItem('auth_token');

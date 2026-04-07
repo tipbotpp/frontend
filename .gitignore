@@ -22,7 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
+.claude/*
+.planning/*
+md-file
+.postman
 
 .env 
 .env.local

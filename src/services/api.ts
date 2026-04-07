@@ -11,58 +11,160 @@ import {
 } from '../types'
 
 /**
- * User API
-*@see https://dev.api.tipbot.qu1nqqy.ru/user
-*/
+ * Auth API
+ * @see auth
+ */
+export const authApi = {
+  /**
+   * Авторизация через Telegram
+   * @param authData - initData от Telegram или mock token для локальной разработки
+   * @returns JWT токен и данные пользователя
+   */
+  async login(authData: string): Promise<{ token: string; user: User }> {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://dev.api.tipbot.qu1nqqy.ru'}/auth/telegram`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ init_data: authData }),
+    })
 
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Auth failed' }))
+      throw new Error(error.message || 'Authorization failed')
+    }
+
+    return response.json()
+  },
+}
+
+/**
+ * User API
+ * @see user
+ */
 export const userApi = {
-  async getProfile(): Promise<User> {
+  async getMe(): Promise<User> {
     return apiRequest<User>({
       method: 'GET',
-      url: '/user/profile',
+      url: 'users/me',
     })
   },
 
-  async updateProfile(data: Partial<User>): Promise<User> {
+  async setRole(role: 'streamer' | 'viewer'): Promise<User> {
     return apiRequest<User>({
       method: 'PATCH',
-      url: '/user/profile',
-      data,
+      url: '/users/me/role',
+      data: { role },
     })
   },
-  
-  async updateBalance(amount: number): Promise<{balance: number}> {
-    return apiRequest<{balance: number}> ({
-        method: 'POST',
-        url: '/user/balance',
-        data: {amount},
+}
+
+/**
+ * Balance API
+ * @see balance
+ */
+
+export const balanceApi = {
+  async get(): Promise<{ balance: number }> {
+    return apiRequest<{ balance: number }>({
+      method: 'GET',
+      url: 'balance',
+    })
+  },
+
+  async topup(amount: number): Promise<{ balance: number }> {
+    return apiRequest<{ balance: number }>({
+      method: 'POST',
+      url: 'balance/topup',
+      data: { amount },
+    })
+  },
+}
+
+/**
+ * Donation API
+ * @see donations
+ */
+
+export const donationApi = {
+  async send(
+    donation: Omit<Donation,'id' | 'timestamp' | 'status'>
+  ): Promise<Donation> {
+    return apiRequest<Donation> ({
+      method: 'POST',
+      url: 'donations',
+      data: {
+        ...donation,
+        timestamp:new Date().toISOString(),
+      },
+    })
+  },
+
+  async getSessionStats(): Promise<{
+    totalEarned: number
+    donationCount: number
+    topDonor?: {name: string; amount: number}
+  }> {
+    return apiRequest({
+      method: 'GET',
+      url: 'donations/session',
+    })
+  },
+
+  async getHistory(): Promise<Donation[]> {
+    return apiRequest<Donation[]>({
+      method: 'GET',
+      url: 'donations/history',
     })
   },
 }
 
 /**
  * Streamer API
- * @see https://dev.api.tipbot.qu1nqqy.ru/streamers
+ * @see streamers
  */
+
+export const healthApi = {
+  async check(): Promise<{ status: string }> {
+    return apiRequest<{ status: string }>({
+      method: 'GET',
+      url: '/health',
+    })
+  },
+}
+
+/**
+ * Metrics API
+ */
+export const metricsApi = {
+  async get(): Promise<Record<string, unknown>> {
+    return apiRequest<Record<string, unknown>>({
+      method: 'GET',
+      url: '/metrics',
+    })
+  },
+}
+
+// Legacy API exports for backward compatibility (to be removed after migration)
 export const streamerApi = {
     async getAll(): Promise<Streamer[]> {
         return apiRequest<Streamer[]>({
             method: 'GET',
-            url: '/streamers',
+            url: 'streamers',
         })
     },
 
     async getById(id:string): Promise<Streamer> {
         return apiRequest<Streamer> ({
             method: 'GET',
-            url: `/streamers/${id}`,
+            url: `streamers/${id}`,
         })
     },
 
     async search(query:string): Promise<Streamer[]> {
         return apiRequest<Streamer[]>({
             method: 'GET',
-            url: '/streamer/search',
+            url: 'streamer/search',
             params: {q: query},
         })
     },
@@ -73,62 +175,24 @@ export const streamerApi = {
     ) : Promise<Streamer> {
         return apiRequest<Streamer>({
             method: "PATCH",
-            url: `/streamers/${id}/settings`,
+            url: `streamers/${id}/settings`,
             data:settings,
         })
     },
 }
 
-/**
- * Donation API
- * @see https://dev.api.tipbot.qu1nqqy.ru/donations
- */
-
-export const donationApi = {
-    async send(
-        donation: Omit<Donation,'id' | 'timestamp' | 'status'>
-    ): Promise<Donation> {
-        return apiRequest<Donation> ({
-            method: 'POST',
-            url: '/donations',
-            data: {
-                ...donation,
-                timestamp:new Date().toISOString(),
-            },
-        })
-    },
-
-    async getHistory(userId: string): Promise<Donation[]> {
-        return apiRequest<Donation[]>({
-            method: 'GET',
-            url: `/users/${userId}/donations`
-        })
-    },
-
-    async getByStreamer(streamerId: string): Promise<Donation[]> {
-        return apiRequest<Donation[]>({
-            method: 'GET',
-            url: `/streamer/${streamerId}/donation`,
-        })
-    },
-}
-
-/**
- * Stream Session API
- * @see https://dev.api.tipbot.qu1nqqy.ru/sessions
- */
 export const sessionApi = {
     async start(streamerId: string): Promise<StreamerSession> {
       return apiRequest<StreamerSession>({
         method: 'POST',
-        url: `/streamers/${streamerId}/sessions`,
+        url: `streamers/${streamerId}/sessions`,
       })
     },
-  
+
     async end(sessionId: string): Promise<StreamerSession> {
       return apiRequest<StreamerSession>({
         method: 'PATCH',
-        url: `/sessions/${sessionId}/end`,
+        url: `sessions/${sessionId}/end`,
       })
     },
 
@@ -150,28 +214,23 @@ export const sessionApi = {
     }> {
         return apiRequest({
             method: 'GET',
-            url: `/sessions/${sessionId}/status`,
+            url: `sessions/${sessionId}/status`,
         })
     },
 }
-
-/**
- * Transaction API
- * @see https://dev.api.tipbot.qu1nqqy.ru/transactions
- */
 
 export const transactionApi ={
     async getHistory(userId: string): Promise<Transaction[]> {
         return apiRequest<Transaction[]>({
             method: 'GET',
-            url: `/users/${userId}/transactions`,
+            url: `users/${userId}/transactions`,
         })
     },
-    
+
     async deposit(userId: string, amount:number, paymentMethod?: string): Promise<Transaction> {
         return apiRequest<Transaction>({
             method: 'POST',
-            url: `/users/${userId}/deposit`,
+            url: `users/${userId}/deposit`,
             data: {
                 amount,
                 payment_method: paymentMethod,
@@ -180,16 +239,11 @@ export const transactionApi ={
     },
 }
 
-/**
- * Alert Settings API
- * @see https://dev.api.tipbot.qu1nqqy.ru/alerts
- */
-
 export const alertApi = {
     async getSettings(streamerId: string): Promise<AlertSettings> {
         return apiRequest<AlertSettings> ({
             method: 'GET',
-            url: `/streamers/${streamerId}/alerts`,
+            url: `streamers/${streamerId}/alerts`,
         })
     },
 
@@ -199,29 +253,24 @@ export const alertApi = {
     ): Promise<AlertSettings> {
         return apiRequest<AlertSettings> ({
             method: 'PATCH',
-            url: `/streamers/${streamerId}/alerts`,
+            url: `streamers/${streamerId}/alerts`,
             data: settings,
         })
     },
 }
 
-/**
- * Stop Words API
- * @see https://dev.api.tipbot.qu1nqqy.ru/stop-words
- */
-
 export const stopWordsApi = {
     async getAll(streamerId: string): Promise<string[]> {
         return apiRequest<string[]>({
             method: 'GET',
-            url: `/streamers/${streamerId}/stop-words`
+            url: `streamers/${streamerId}/stop-words`
         })
     },
 
     async add(streamerId: string, word:string): Promise<string[]> {
         return apiRequest<string[]>({
             method: 'POST',
-            url: `/streamers/${streamerId}/stop-words`,
+            url: `streamers/${streamerId}/stop-words`,
             data: {word},
         })
     },
@@ -229,21 +278,16 @@ export const stopWordsApi = {
     async remove(streamerId: string, word:string): Promise<void>{
         return apiRequest<void>({
             method: 'DELETE',
-            url: `/streamers/${streamerId}/stop-word/${encodeURIComponent(word)}`,
+            url: `streamers/${streamerId}/stop-word/${encodeURIComponent(word)}`,
         })
     },
 }
-
-/**
- *  Passive Income API
- * @see https://dev.api.tipbot.qu1nqqy.ru/passive-income
- */
 
 export const passiveIncomeAPI = {
     async getSettings(streamerId: string): Promise<PassiveIncomeSettings> {
         return apiRequest<PassiveIncomeSettings>({
             method: 'GET',
-            url: `/streamer/${streamerId}/passive-income`,
+            url: `streamer/${streamerId}/passive-income`,
         })
     },
 
@@ -253,7 +297,7 @@ export const passiveIncomeAPI = {
     ): Promise<PassiveIncomeSettings>{
         return apiRequest<PassiveIncomeSettings>({
             method: 'PATCH',
-            url: `/streamer/${streamerId}/passive-income`,
+            url: `streamer/${streamerId}/passive-income`,
             data: settings,
         })
     },
