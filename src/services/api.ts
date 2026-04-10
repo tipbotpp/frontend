@@ -20,7 +20,7 @@ export const authApi = {
    * @param authData - initData от Telegram или mock token для локальной разработки
    * @returns JWT токен и данные пользователя
    */
-  async login(authData: string): Promise<{ token: string; user: User }> {
+  async login(authData: string): Promise<{ access_token: string; user: User }> {
     const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://dev.api.tipbot.qu1nqqy.ru'}/auth/telegram`, {
       method: 'POST',
       headers: {

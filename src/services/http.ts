@@ -2,7 +2,7 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosError } from 'axios'
 
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://tipbot.qu1nqqy.ru'
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.tipbot.qu1nqqy.ru'
 export const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL || window.location.origin
 export const ENVIRONMENT = import.meta.env.VITE_ENVIRONMENT || 'development'
 
