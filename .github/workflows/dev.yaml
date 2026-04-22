@@ -43,7 +43,7 @@ jobs:
           cd ${{ secrets.DEV_FRONTEND_DIR }}
           git checkout dev
           git pull --rebase
-          yarn install
+          yarn install --frozen-lockfile
           yarn build:prod
           rm -rf ${{ secrets.DEV_FE_DIST_DIR }}/*
           cp -r dist/* ${{ secrets.DEV_FE_DIST_DIR }}/
