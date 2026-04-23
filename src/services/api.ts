@@ -1,304 +1,184 @@
-import {apiRequest} from './http'
+import { http } from './http'
+import type {
+  User,
+  StreamerItem,
+  StreamerProfile,
+  StreamerListResponse,
+  StreamerFilters,
+  AlertSettings,
+  AlertSettingsBody,
+  StopWord,
+  StopWordBody,
+  PassiveIncomeSettings,
+  PassiveIncomeBody,
+  BalanceResponse,
+  TopupResponse,
+  TopupBody,
+  DonationBody,
+  DonationCreateResponse,
+  DonationHistoryResponse,
+  SessionStats,
+  StreamStartBody,
+  StreamStartResponse,
+  StreamStopResponse,
+  StreamStatusResponse,
+  AuthResponse,
+  UserRoleBody,
+} from '../app/types'
 
-import {
-    type Transaction,
-  type User,
-  type Streamer,
-  type Donation,
-  type StreamerSession,
-  type AlertSettings,
-  type PassiveIncomeSettings,
-} from '../types'
+// API_BASE уже настроен в http.ts через axios baseURL
+// Больше не нужен отдельный импорт config-api
 
 /**
  * Auth API
- * @see auth
  */
 export const authApi = {
-  /**
-   * Авторизация через Telegram
-   * @param authData - initData от Telegram или mock token для локальной разработки
-   * @returns JWT токен и данные пользователя
-   */
-  async login(authData: string): Promise<{ access_token: string; user: User }> {
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://dev.api.tipbot.qu1nqqy.ru'}/auth/telegram`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ init_data: authData }),
-    })
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Auth failed' }))
-      throw new Error(error.message || 'Authorization failed')
-    }
-
-    return response.json()
+  async login(initData: string): Promise<AuthResponse> {
+    return http.post('/auth/telegram', { init_data: initData })
   },
 }
 
 /**
  * User API
- * @see user
  */
 export const userApi = {
   async getMe(): Promise<User> {
-    return apiRequest<User>({
-      method: 'GET',
-      url: 'users/me',
-    })
+    return http.get('/users/me')
   },
 
   async setRole(role: 'streamer' | 'viewer'): Promise<User> {
-    return apiRequest<User>({
-      method: 'PATCH',
-      url: '/users/me/role',
-      data: { role },
-    })
+    return http.patch('/users/me/role', { role })
+  },
+
+  async updateProfile(data: { display_name?: string; description?: string }): Promise<User> {
+    return http.patch('/users/me', data)
+  },
+}
+
+/**
+ * Streamers API
+ */
+export const streamerApi = {
+  async getAll(filters?: StreamerFilters): Promise<StreamerListResponse> {
+    const params = new URLSearchParams()
+    if (filters?.limit) params.append('limit', String(filters.limit))
+    if (filters?.offset) params.append('offset', String(filters.offset))
+    if (filters?.search) params.append('search', filters.search)
+    
+    const query = params.toString() ? `?${params}` : ''
+    return http.get(`/streamers${query}`)  // ← streamers (множественное число с 'er')
+  },
+
+  async getById(userId: number): Promise<StreamerProfile> {
+    return http.get(`/streamers/${userId}`)
+  },
+}
+
+/**
+ * Stream API (управление стримом)
+ */
+export const streamApi = {
+  async start(body?: StreamStartBody): Promise<StreamStartResponse> {
+    return http.post('/stream/start', body || {})
+  },
+
+  async stop(): Promise<StreamStopResponse> {
+    return http.post('/stream/stop')
+  },
+
+  async getStatus(): Promise<StreamStatusResponse> {
+    return http.get('/stream/status')
   },
 }
 
 /**
  * Balance API
- * @see balance
  */
-
 export const balanceApi = {
-  async get(): Promise<{ balance: number }> {
-    return apiRequest<{ balance: number }>({
-      method: 'GET',
-      url: 'balance',
-    })
+  async get(): Promise<BalanceResponse> {
+    return http.get('/balance')
   },
 
-  async topup(amount: number): Promise<{ balance: number }> {
-    return apiRequest<{ balance: number }>({
-      method: 'POST',
-      url: 'balance/topup',
-      data: { amount },
-    })
+  async topup(amount: number): Promise<TopupResponse> {
+    return http.post('/balance/topup', { amount })
   },
 }
 
 /**
  * Donation API
- * @see donations
  */
-
 export const donationApi = {
-  async send(
-    donation: Omit<Donation,'id' | 'timestamp' | 'status'>
-  ): Promise<Donation> {
-    return apiRequest<Donation> ({
-      method: 'POST',
-      url: 'donations',
-      data: {
-        ...donation,
-        timestamp:new Date().toISOString(),
-      },
-    })
+  async send(donation: DonationBody): Promise<DonationCreateResponse> {
+    return http.post('/donations', donation)
   },
 
-  async getSessionStats(): Promise<{
-    totalEarned: number
-    donationCount: number
-    topDonor?: {name: string; amount: number}
-  }> {
-    return apiRequest({
-      method: 'GET',
-      url: 'donations/session',
-    })
+  async getSessionStats(): Promise<SessionStats> {
+    return http.get('/donations/session')
   },
 
-  async getHistory(): Promise<Donation[]> {
-    return apiRequest<Donation[]>({
-      method: 'GET',
-      url: 'donations/history',
-    })
+  async getHistory(params?: { 
+    limit?: number
+    offset?: number
+    type?: 'sent' | 'received'
+  }): Promise<DonationHistoryResponse> {
+    const searchParams = new URLSearchParams()
+    if (params?.limit) searchParams.append('limit', String(params.limit))
+    if (params?.offset) searchParams.append('offset', String(params.offset))
+    if (params?.type) searchParams.append('type', params.type)
+    
+    const query = searchParams.toString() ? `?${searchParams}` : ''
+    return http.get(`/donations/history${query}`)
   },
 }
 
 /**
- * Streamer API
- * @see streamers
+ * Alert Settings API
  */
+export const alertApi = {
+  async getSettings(): Promise<AlertSettings> {
+    return http.get('/settings/alert')
+  },
 
+  async updateSettings(settings: AlertSettingsBody): Promise<AlertSettings> {
+    return http.patch('/settings/alert', settings)
+  },
+}
+
+/**
+ * Stop Words API
+ */
+export const stopWordsApi = {
+  async getAll(): Promise<StopWord[]> {
+    return http.get('/settings/stopwords')
+  },
+
+  async add(word: string): Promise<StopWord> {
+    return http.post('/settings/stopwords', { word })
+  },
+
+  async remove(wordId: number): Promise<void> {
+    return http.delete(`/settings/stopwords/${wordId}`)
+  },
+}
+
+/**
+ * Passive Income API
+ */
+export const passiveIncomeApi = {
+  async getSettings(): Promise<PassiveIncomeSettings> {
+    return http.get('/settings/passive-income')
+  },
+
+  async updateSettings(settings: PassiveIncomeBody): Promise<PassiveIncomeSettings> {
+    return http.patch('/settings/passive-income', settings)
+  },
+}
+
+/**
+ * Health API (публичный, без авторизации)
+ */
 export const healthApi = {
   async check(): Promise<{ status: string }> {
-    return apiRequest<{ status: string }>({
-      method: 'GET',
-      url: '/health',
-    })
+    return http.get('/health', { headers: { Authorization: '' } })
   },
-}
-
-/**
- * Metrics API
- */
-export const metricsApi = {
-  async get(): Promise<Record<string, unknown>> {
-    return apiRequest<Record<string, unknown>>({
-      method: 'GET',
-      url: '/metrics',
-    })
-  },
-}
-
-// Legacy API exports for backward compatibility (to be removed after migration)
-export const streamerApi = {
-    async getAll(): Promise<Streamer[]> {
-        return apiRequest<Streamer[]>({
-            method: 'GET',
-            url: 'streamers',
-        })
-    },
-
-    async getById(id:string): Promise<Streamer> {
-        return apiRequest<Streamer> ({
-            method: 'GET',
-            url: `streamers/${id}`,
-        })
-    },
-
-    async search(query:string): Promise<Streamer[]> {
-        return apiRequest<Streamer[]>({
-            method: 'GET',
-            url: 'streamer/search',
-            params: {q: query},
-        })
-    },
-
-    async updateSettings(
-        id: string,
-        settings: Partial<Pick<Streamer, 'alertSettings' | 'stopWords' | 'passiveIncome'>>
-    ) : Promise<Streamer> {
-        return apiRequest<Streamer>({
-            method: "PATCH",
-            url: `streamers/${id}/settings`,
-            data:settings,
-        })
-    },
-}
-
-export const sessionApi = {
-    async start(streamerId: string): Promise<StreamerSession> {
-      return apiRequest<StreamerSession>({
-        method: 'POST',
-        url: `streamers/${streamerId}/sessions`,
-      })
-    },
-
-    async end(sessionId: string): Promise<StreamerSession> {
-      return apiRequest<StreamerSession>({
-        method: 'PATCH',
-        url: `sessions/${sessionId}/end`,
-      })
-    },
-
-    async getCurrent(streamerId: string): Promise<StreamerSession | null> {
-        return apiRequest<StreamerSession | null>({
-            method: 'GET',
-            url: `/streamers/${streamerId}/sessions/current`,
-            validateStatus: (status) => status < 500,
-        }).catch((error) => {
-            if (error?.response?.status === 404) return null
-            throw error
-        })
-    },
-
-    async getStatus(sessionId: string): Promise<{
-        totalEarned: number
-        donationCount: number
-        topDonor?: {name: string; amount: number}
-    }> {
-        return apiRequest({
-            method: 'GET',
-            url: `sessions/${sessionId}/status`,
-        })
-    },
-}
-
-export const transactionApi ={
-    async getHistory(userId: string): Promise<Transaction[]> {
-        return apiRequest<Transaction[]>({
-            method: 'GET',
-            url: `users/${userId}/transactions`,
-        })
-    },
-
-    async deposit(userId: string, amount:number, paymentMethod?: string): Promise<Transaction> {
-        return apiRequest<Transaction>({
-            method: 'POST',
-            url: `users/${userId}/deposit`,
-            data: {
-                amount,
-                payment_method: paymentMethod,
-            },
-        })
-    },
-}
-
-export const alertApi = {
-    async getSettings(streamerId: string): Promise<AlertSettings> {
-        return apiRequest<AlertSettings> ({
-            method: 'GET',
-            url: `streamers/${streamerId}/alerts`,
-        })
-    },
-
-    async updateSettings(
-        streamerId: string,
-        settings: Partial<AlertSettings>
-    ): Promise<AlertSettings> {
-        return apiRequest<AlertSettings> ({
-            method: 'PATCH',
-            url: `streamers/${streamerId}/alerts`,
-            data: settings,
-        })
-    },
-}
-
-export const stopWordsApi = {
-    async getAll(streamerId: string): Promise<string[]> {
-        return apiRequest<string[]>({
-            method: 'GET',
-            url: `streamers/${streamerId}/stop-words`
-        })
-    },
-
-    async add(streamerId: string, word:string): Promise<string[]> {
-        return apiRequest<string[]>({
-            method: 'POST',
-            url: `streamers/${streamerId}/stop-words`,
-            data: {word},
-        })
-    },
-
-    async remove(streamerId: string, word:string): Promise<void>{
-        return apiRequest<void>({
-            method: 'DELETE',
-            url: `streamers/${streamerId}/stop-word/${encodeURIComponent(word)}`,
-        })
-    },
-}
-
-export const passiveIncomeAPI = {
-    async getSettings(streamerId: string): Promise<PassiveIncomeSettings> {
-        return apiRequest<PassiveIncomeSettings>({
-            method: 'GET',
-            url: `streamer/${streamerId}/passive-income`,
-        })
-    },
-
-    async updateSetting(
-        streamerId: string,
-        settings: Partial<PassiveIncomeSettings>
-    ): Promise<PassiveIncomeSettings>{
-        return apiRequest<PassiveIncomeSettings>({
-            method: 'PATCH',
-            url: `streamer/${streamerId}/passive-income`,
-            data: settings,
-        })
-    },
 }
