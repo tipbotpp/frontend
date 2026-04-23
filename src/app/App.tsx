@@ -11,9 +11,8 @@ const WELCOME_SEEN_KEY = 'tipbot_welcome_seen';
 
 export default function App() {
   const telegram = useTelegram();
-  const { isAuthenticated, isLoading, user, error, checkAuth } = useAuth();
+  const { isAuthenticated, isLoading,  error, checkAuth } = useAuth();
   const [showWelcome, setShowWelcome] = useState(() => {
-    // Проверяем, видел ли пользователь приветствие
     const seen = localStorage.getItem(WELCOME_SEEN_KEY);
     return seen !== 'true';
   });

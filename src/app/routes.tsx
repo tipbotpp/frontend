@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate, redirect } from 'react-router';
+import { createHashRouter, Navigate, redirect } from 'react-router';
 import { Layout } from './components/Layout';
 import { Home } from './pages/Home';
 import { StreamerPage } from './pages/StreamerPage';
@@ -27,7 +27,7 @@ const streamerLoader = async () => {
   return null;
 };
 
-export const router = createBrowserRouter([
+export const router = createHashRouter([
   {
     path: '/',
     Component: Layout,
