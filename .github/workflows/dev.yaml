@@ -40,7 +40,7 @@ jobs:
       - name: Connect and Pull
         run: |
           ssh -A -p ${{ secrets.DEV_SSH_PORT }} ${{ secrets.DEV_SSH_USER }}@${{ secrets.DEV_SSH_HOST }} << 'EOF'
-          cd ${{ secrets.DEV_FRONTEND_DIR }}
+          cd ${{ secrets.DEV_WORK_DIR }}
           git checkout dev
           git pull --rebase
           yarn install --frozen-lockfile
