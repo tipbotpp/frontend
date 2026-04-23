@@ -50,7 +50,7 @@ jobs:
           echo "VITE_API_FRONTEND_URL='${{ secrets.DEV_VITE_API_FRONTEND_URL }}'" >> .env
           echo "VITE_ENVIRONMENT='${{ secrets.DEV_VITE_ENVIRONMENT }}'" >> .env
                   
-          yarn install --frozen-lockfile
+          yarn install
           yarn build:prod
           rm -rf ${{ secrets.DEV_FE_DIST_DIR }}/*
           cp -r dist/* ${{ secrets.DEV_FE_DIST_DIR }}/
