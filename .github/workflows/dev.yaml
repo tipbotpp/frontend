@@ -43,6 +43,13 @@ jobs:
           cd ${{ secrets.DEV_WORK_DIR }}
           git checkout dev
           git pull --rebase
+          
+          rm -f .env
+          touch .env
+          echo "VITE_API_BASE_URL='${{ secrets.DEV_VITE_API_BASE_URL }}'" >> .env
+          echo "VITE_API_FRONTEND_URL='${{ secrets.DEV_VITE_API_FRONTEND_URL }}'" >> .env
+          echo "VITE_ENVIRONMENT='${{ secrets.DEV_VITE_ENVIRONMENT }}'" >> .env
+                  
           yarn install --frozen-lockfile
           yarn build:prod
           rm -rf ${{ secrets.DEV_FE_DIST_DIR }}/*
