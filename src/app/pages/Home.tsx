@@ -8,7 +8,7 @@ import { Progress } from '../components/ui/progress';
 import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { toast } from 'sonner';
-import { streamerApi, balanceApi, userApi } from '../../services/api';
+import { balanceApi, userApi } from '../../services/api';
 import type { StreamerItem, User } from '../types';
 
 export function Home() {
@@ -37,7 +37,7 @@ export function Home() {
       setBalance(balanceData.balance);
       
       try {
-        const streamersData = await streamerApi.getAll({ limit: 50 });
+        const streamersData = await userApi.getStreamers({ limit: 50 }); // ← БЫЛО streamerApi.getAll
         setStreamers(streamersData.items);
       } catch (err) {
         console.warn('Streamers endpoint not available yet');
