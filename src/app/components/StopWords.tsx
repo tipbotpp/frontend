@@ -20,11 +20,10 @@ export function StopWords() {
   useEffect(() => {
     loadStopWords();
   }, []);
-
   const loadStopWords = async () => {
     try {
       setIsLoading(true);
-      const words = await stopWordsApi.getAll();
+      const words = await stopWordsApi.getAll(); // Теперь возвращает StopWord[]
       setStopWords(words);
     } catch (error) {
       console.warn('Stop words not available yet');
