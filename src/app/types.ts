@@ -259,3 +259,19 @@ export interface StreamStatusResponse {
   widget_url: string | null;
   ws_url: string | null;  
 }
+
+export interface UserUpdateBody {
+  display_name?: string;
+  description?: string;
+}
+
+export interface GoalBody {
+  title?: string;
+  target_amount?: number;
+}
+
+export interface GoalResponse {
+  title: string | null;
+  target_amount: number;
+  current_amount: number;
+}
