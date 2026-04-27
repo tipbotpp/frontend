@@ -24,7 +24,8 @@ export function Home() {
     loadData();
   }, []);
 
- const loadData = async () => {
+
+  const loadData = async () => {
   try {
     setIsLoading(true);
     
@@ -41,9 +42,12 @@ export function Home() {
     let streamersData = null;
     try {
       streamersData = await streamerApi.getAll({ limit: 50 });
+      setStreamers(streamersData.items);
     } catch (err) {
       console.error('Failed to load streamers:', err);
       toast.error('Не удалось загрузить список стримеров');
+      console.warn('Streamers endpoint not available yet, showing empty list');
+      setStreamers([]);
     }
     
     // Загружаем баланс
