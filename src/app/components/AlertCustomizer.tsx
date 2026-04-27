@@ -37,7 +37,7 @@ export function AlertCustomizer() {
     tts_voice: 'default',
   });
   const [showPreview, setShowPreview] = useState(false);
-  const [previewDonation, setPreviewDonation] = useState({ amount: 500, message: 'Спасибо за стрим!' });
+  const [previewDonation] = useState({ amount: 500, message: 'Спасибо за стрим!' });
 
   useEffect(() => {
     loadData();
