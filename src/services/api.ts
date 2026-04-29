@@ -13,7 +13,6 @@ import type {
   PassiveIncomeBody,
   BalanceResponse,
   TopupResponse,
-  TopupBody,
   DonationBody,
   DonationCreateResponse,
   DonationHistoryResponse,
@@ -24,10 +23,9 @@ import type {
   StreamStatusResponse,
   AuthResponse,
   UserRoleBody,
+  UserUpdateBody,
+  GoalBody,
 } from '../app/types'
-
-// API_BASE уже настроен в http.ts через axios baseURL
-// Больше не нужен отдельный импорт config-api
 
 /**
  * Auth API
@@ -46,48 +44,26 @@ export const userApi = {
     return http.get('/users/me')
   },
 
+  async updateProfile(data: UserUpdateBody): Promise<User> {
+    return http.patch('/users/me', data)
+  },
+
   async setRole(role: 'streamer' | 'viewer'): Promise<User> {
     return http.patch('/users/me/role', { role })
   },
 
-  async updateProfile(data: { display_name?: string; description?: string }): Promise<User> {
-    return http.patch('/users/me', data)
-  },
-}
-
-/**
- * Streamers API
- */
-export const streamerApi = {
-  async getAll(filters?: StreamerFilters): Promise<StreamerListResponse> {
+  async getStreamers(filters?: StreamerFilters): Promise<StreamerListResponse> {
     const params = new URLSearchParams()
     if (filters?.limit) params.append('limit', String(filters.limit))
     if (filters?.offset) params.append('offset', String(filters.offset))
     if (filters?.search) params.append('search', filters.search)
     
     const query = params.toString() ? `?${params}` : ''
-    return http.get(`/streamers${query}`)  // ← streamers (множественное число с 'er')
+    return http.get(`/users/streamers${query}`)
   },
 
-  async getById(userId: number): Promise<StreamerProfile> {
-    return http.get(`/streamers/${userId}`)
-  },
-}
-
-/**
- * Stream API (управление стримом)
- */
-export const streamApi = {
-  async start(body?: StreamStartBody): Promise<StreamStartResponse> {
-    return http.post('/stream/start', body || {})
-  },
-
-  async stop(): Promise<StreamStopResponse> {
-    return http.post('/stream/stop')
-  },
-
-  async getStatus(): Promise<StreamStatusResponse> {
-    return http.get('/stream/status')
+  async getUserById(userId: number): Promise<StreamerProfile> {
+    return http.get(`/users/${userId}`)
   },
 }
 
@@ -112,10 +88,6 @@ export const donationApi = {
     return http.post('/donations', donation)
   },
 
-  async getSessionStats(): Promise<SessionStats> {
-    return http.get('/donations/session')
-  },
-
   async getHistory(params?: { 
     limit?: number
     offset?: number
@@ -128,6 +100,27 @@ export const donationApi = {
     
     const query = searchParams.toString() ? `?${searchParams}` : ''
     return http.get(`/donations/history${query}`)
+  },
+
+  async getSessionStats(): Promise<SessionStats> {
+    return http.get('/donations/session')
+  },
+}
+
+/**
+ * Stream API
+ */
+export const streamApi = {
+  async start(body?: StreamStartBody): Promise<StreamStartResponse> {
+    return http.post('/stream/start', body || {})
+  },
+
+  async stop(): Promise<StreamStopResponse> {
+    return http.post('/stream/stop')
+  },
+
+  async getStatus(): Promise<StreamStatusResponse> {
+    return http.get('/stream/status')
   },
 }
 
@@ -142,6 +135,23 @@ export const alertApi = {
   async updateSettings(settings: AlertSettingsBody): Promise<AlertSettings> {
     return http.patch('/settings/alert', settings)
   },
+
+  async sendTest(): Promise<{ status: string; message: string }> {
+    return http.post('/settings/alert/test')
+  },
+}
+
+/**
+ * Goal Settings API
+ */
+export const goalApi = {
+  async get(): Promise<{ title: string | null; target_amount: number; current_amount: number }> {
+    return http.get('/settings/goal')
+  },
+
+  async update(goal: GoalBody): Promise<{ title: string | null; target_amount: number; current_amount: number }> {
+    return http.patch('/settings/goal', goal)
+  },
 }
 
 /**
@@ -149,7 +159,8 @@ export const alertApi = {
  */
 export const stopWordsApi = {
   async getAll(): Promise<StopWord[]> {
-    return http.get('/settings/stopwords')
+    const response = await http.get<{ items: StopWord[] }>('/settings/stopwords')
+    return (response as unknown as { items: StopWord[] }).items
   },
 
   async add(word: string): Promise<StopWord> {
@@ -175,10 +186,24 @@ export const passiveIncomeApi = {
 }
 
 /**
- * Health API (публичный, без авторизации)
+ * Widget API (публичный, без авторизации)
+ */
+export const widgetApi = {
+  async getConfig(streamToken: string): Promise<{
+    stream_token: string
+    streamer: { username: string; display_name: string }
+    alert_style: { bg_color: string; font: string; duration_sec: number }
+    ws_url: string
+  }> {
+    return http.get(`/widget/${streamToken}`)
+  },
+}
+
+/**
+ * Health API (публичный)
  */
 export const healthApi = {
   async check(): Promise<{ status: string }> {
-    return http.get('/health', { headers: { Authorization: '' } })
+    return http.get('/health')
   },
 }

@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Info, Loader2 } from 'lucide-react';
+import { Info, Loader2, Coins, Clock, Zap, TrendingUp, Users } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';  // ← ДОБАВИТЬ AnimatePresence
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Switch } from './ui/switch';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Button } from './ui/button';
 import { Alert, AlertDescription } from './ui/alert';
+import { Slider } from './ui/slider';
 import { toast } from 'sonner';
 import { passiveIncomeApi } from '../../services/api';
 import type { PassiveIncomeSettings } from '../types';
@@ -29,8 +31,7 @@ export function PassiveIncome() {
       const data = await passiveIncomeApi.getSettings();
       setSettings(data);
     } catch (error) {
-      console.error('Failed to load passive income settings:', error);
-      toast.error('Не удалось загрузить настройки');
+      console.warn('Passive income settings not available yet');
     } finally {
       setIsLoading(false);
     }
@@ -45,9 +46,13 @@ export function PassiveIncome() {
         interval_minutes: settings.interval_minutes,
       });
       setSettings(updatedSettings);
-      toast.success('Настройки пассивного дохода сохранены!');
+      toast.success(
+        <div className="flex items-center gap-2">
+          <Zap className="w-4 h-4 text-yellow-400" />
+          <span>Настройки пассивного дохода сохранены!</span>
+        </div>
+      );
     } catch (error: any) {
-      console.error('Failed to save settings:', error);
       toast.error(error?.message || 'Ошибка при сохранении настроек');
     } finally {
       setIsSaving(false);
@@ -58,155 +63,333 @@ export function PassiveIncome() {
     ? Math.floor((60 / settings.interval_minutes) * settings.coins_per_interval) 
     : 0;
 
+  const estimatedPerDay = estimatedPerHour * 24;
+
   if (isLoading) {
     return (
-      <Card className="shadow-lg">
-        <CardContent className="py-12">
-          <div className="flex items-center justify-center">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
+      </div>
     );
   }
 
   return (
-    <Card className="shadow-lg">
-      <CardHeader>
-        <CardTitle>Настройка пассивного дохода</CardTitle>
-        <CardDescription>
-          Автоматическое начисление монет зрителям во время стрима
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Enable/Disable */}
-        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-          <div className="flex-1">
-            <Label htmlFor="passive-toggle" className="text-base font-medium cursor-pointer">
-              Включить пассивный доход
-            </Label>
-            <p className="text-sm text-gray-600 mt-1">
-              Зрители будут получать монеты за просмотр
-            </p>
-          </div>
-          <Switch
-            id="passive-toggle"
-            checked={settings.enabled}
-            onCheckedChange={(checked) => setSettings({ ...settings, enabled: checked })}
-            disabled={isSaving}
-          />
+    <div className="space-y-6 pb-6">
+      {/* Hero Section */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0f0f1a] via-[#13132b] to-[#0a0a1a] border border-gray-800/50 p-8"
+      >
+        {/* Анимированный фон */}
+        <div className="absolute inset-0">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl" />
         </div>
 
-        {/* Settings */}
+        <div className="relative">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-500 to-amber-600 flex items-center justify-center">
+              <Coins className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-white">Пассивный доход</h2>
+              <p className="text-gray-400 text-sm">Автоматическое начисление монет зрителям</p>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Toggle Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
+        <Card className="bg-gray-900/60 backdrop-blur-xl border-gray-800/50">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <Label htmlFor="passive-toggle" className="text-lg font-semibold text-white cursor-pointer">
+                  Включить пассивный доход
+                </Label>
+                <p className="text-gray-400 text-sm mt-1">
+                  Зрители будут получать монеты автоматически во время просмотра
+                </p>
+              </div>
+              <Switch
+                id="passive-toggle"
+                checked={settings.enabled}
+                onCheckedChange={(checked) => setSettings({ ...settings, enabled: checked })}
+                disabled={isSaving}
+                className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-cyan-500 data-[state=checked]:to-purple-600 scale-125"
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Settings */}
+      <AnimatePresence>
         {settings.enabled && (
-          <div className="space-y-4 animate-in fade-in duration-300">
-            {/* Amount */}
-            <div className="space-y-2">
-              <Label htmlFor="amount">Сумма начисления (монет)</Label>
-              <Input
-                id="amount"
-                type="number"
-                min="1"
-                max="100"
-                value={settings.coins_per_interval}
-                onChange={(e) => setSettings({ 
-                  ...settings, 
-                  coins_per_interval: Number(e.target.value) 
-                })}
-                className="text-lg"
-                disabled={isSaving}
-              />
-              <p className="text-xs text-gray-500">
-                От 1 до 100 монет за начисление
-              </p>
-            </div>
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-6"
+          >
+            {/* Amount Setting */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <Card className="bg-gray-900/60 backdrop-blur-xl border-gray-800/50">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Coins className="w-5 h-5 text-yellow-400" />
+                    Сумма начисления
+                  </CardTitle>
+                  <CardDescription className="text-gray-400">
+                    Сколько монет получает зритель за интервал
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1">
+                      <Slider
+                        value={[settings.coins_per_interval]}
+                        onValueChange={([value]) => setSettings({ ...settings, coins_per_interval: value })}
+                        min={1}
+                        max={100}
+                        step={1}
+                        disabled={isSaving}
+                        className="[&>span]:bg-gradient-to-r [&>span]:from-cyan-500 [&>span]:to-purple-600"
+                      />
+                      <div className="flex justify-between text-xs text-gray-500 mt-2">
+                        <span>1 coin</span>
+                        <span>100 coins</span>
+                      </div>
+                    </div>
+                    <div className="w-20">
+                      <Input
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={settings.coins_per_interval}
+                        onChange={(e) => setSettings({ ...settings, coins_per_interval: Number(e.target.value) })}
+                        className="text-center text-lg font-bold text-white bg-gray-800 border-gray-700"
+                        disabled={isSaving}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
 
-            {/* Interval */}
-            <div className="space-y-2">
-              <Label htmlFor="interval">Интервал начисления (минут)</Label>
-              <Input
-                id="interval"
-                type="number"
-                min="1"
-                max="60"
-                value={settings.interval_minutes}
-                onChange={(e) => setSettings({ 
-                  ...settings, 
-                  interval_minutes: Number(e.target.value) 
-                })}
-                className="text-lg"
-                disabled={isSaving}
-              />
-              <p className="text-xs text-gray-500">
-                От 1 до 60 минут между начислениями
-              </p>
-            </div>
+            {/* Interval Setting */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <Card className="bg-gray-900/60 backdrop-blur-xl border-gray-800/50">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-cyan-400" />
+                    Интервал начисления
+                  </CardTitle>
+                  <CardDescription className="text-gray-400">
+                    Как часто зрители получают монеты
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1">
+                      <Slider
+                        value={[settings.interval_minutes]}
+                        onValueChange={([value]) => setSettings({ ...settings, interval_minutes: value })}
+                        min={1}
+                        max={60}
+                        step={1}
+                        disabled={isSaving}
+                        className="[&>span]:bg-gradient-to-r [&>span]:from-cyan-500 [&>span]:to-purple-600"
+                      />
+                      <div className="flex justify-between text-xs text-gray-500 mt-2">
+                        <span>1 минута</span>
+                        <span>60 минут</span>
+                      </div>
+                    </div>
+                    <div className="w-20">
+                      <Input
+                        type="number"
+                        min="1"
+                        max="60"
+                        value={settings.interval_minutes}
+                        onChange={(e) => setSettings({ ...settings, interval_minutes: Number(e.target.value) })}
+                        className="text-center text-lg font-bold text-white bg-gray-800 border-gray-700"
+                        disabled={isSaving}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
 
-            {/* Info Block */}
-            <Alert className="bg-blue-50 border-blue-200">
-              <Info className="h-4 w-4 text-blue-600" />
-              <AlertDescription className="text-blue-900">
-                Зрители будут получать <span className="font-bold">{settings.coins_per_interval} монет</span> каждые{' '}
-                <span className="font-bold">{settings.interval_minutes} минут</span>, пока вы в эфире
-              </AlertDescription>
-            </Alert>
+            {/* Stats Cards */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+            >
+              {/* Per Hour */}
+              <Card className="bg-gray-900/60 backdrop-blur-xl border-gray-800/50 relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/5 to-amber-500/5" />
+                <CardContent className="p-6 relative">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-yellow-500/20 flex items-center justify-center">
+                      <TrendingUp className="w-4 h-4 text-yellow-400" />
+                    </div>
+                    <span className="text-gray-400 text-sm">За час стрима</span>
+                  </div>
+                  <p className="text-3xl font-bold bg-gradient-to-r from-yellow-400 to-amber-400 bg-clip-text text-transparent">
+                    ~{estimatedPerHour}
+                  </p>
+                  <p className="text-gray-500 text-sm mt-1">монет на зрителя</p>
+                </CardContent>
+              </Card>
 
-            {/* Estimation */}
-            <div className="bg-gradient-to-r from-green-50 to-teal-50 rounded-lg p-4">
-              <p className="text-sm text-gray-700 mb-1">Примерный расход за час стрима:</p>
-              <p className="text-3xl font-bold text-green-600">
-                ~{estimatedPerHour} монет
-              </p>
-              <p className="text-xs text-gray-600 mt-1">на одного зрителя</p>
-            </div>
-          </div>
+              {/* Per Day */}
+              <Card className="bg-gray-900/60 backdrop-blur-xl border-gray-800/50 relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/5 to-purple-500/5" />
+                <CardContent className="p-6 relative">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+                      <Users className="w-4 h-4 text-cyan-400" />
+                    </div>
+                    <span className="text-gray-400 text-sm">За 24 часа (теоретически)</span>
+                  </div>
+                  <p className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+                    ~{estimatedPerDay}
+                  </p>
+                  <p className="text-gray-500 text-sm mt-1">монет на зрителя</p>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Info Alert */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+            >
+              <Alert className="bg-cyan-500/5 border-cyan-500/30 backdrop-blur-sm">
+                <Info className="h-4 w-4 text-cyan-400" />
+                <AlertDescription className="text-cyan-300/80">
+                  Зрители получают <span className="font-bold text-cyan-400">{settings.coins_per_interval} монет</span> каждые{' '}
+                  <span className="font-bold text-cyan-400">{settings.interval_minutes} мин</span> во время стрима
+                </AlertDescription>
+              </Alert>
+            </motion.div>
+
+            {/* How it works */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+            >
+              <Card className="bg-gray-900/60 backdrop-blur-xl border-gray-800/50">
+                <CardHeader>
+                  <CardTitle className="text-white">Как это работает</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {[
+                      {
+                        icon: <Zap className="w-5 h-5 text-yellow-400" />,
+                        title: 'Автоматическое начисление',
+                        desc: 'Монеты начисляются автоматически, пока стрим активен'
+                      },
+                      {
+                        icon: <Users className="w-5 h-5 text-cyan-400" />,
+                        title: 'Всем зрителям',
+                        desc: 'Каждый зритель получает монеты за просмотр'
+                      },
+                      {
+                        icon: <TrendingUp className="w-5 h-5 text-purple-400" />,
+                        title: 'Стимул смотреть',
+                        desc: 'Зрители могут тратить монеты на донаты другим стримерам'
+                      },
+                    ].map((item, index) => (
+                      <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-gray-800/30">
+                        <div className="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center flex-shrink-0">
+                          {item.icon}
+                        </div>
+                        <div>
+                          <p className="font-medium text-white">{item.title}</p>
+                          <p className="text-sm text-gray-400">{item.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </motion.div>
         )}
+      </AnimatePresence>
 
-        {/* Disabled State */}
-        {!settings.enabled && (
-          <div className="text-center py-8 text-gray-500">
-            <p>Пассивный доход отключен</p>
-            <p className="text-sm mt-1">
-              Включите, чтобы награждать зрителей за просмотр
-            </p>
-          </div>
-        )}
+      {/* Disabled State */}
+      {!settings.enabled && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <Card className="bg-gray-900/60 backdrop-blur-xl border-gray-800/50">
+            <CardContent className="py-12 text-center">
+              <motion.div
+                animate={{ y: [0, -10, 0] }}
+                transition={{ duration: 3, repeat: Infinity }}
+                className="text-5xl mb-4"
+              >
+                😴
+              </motion.div>
+              <p className="text-gray-400 text-lg">Пассивный доход выключен</p>
+              <p className="text-gray-500 text-sm mt-1">
+                Включите, чтобы зрители получали монеты за просмотр ваших стримов
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
 
-        {/* Save Button */}
+      {/* Save Button */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+      >
         <Button 
           onClick={handleSave} 
-          className="w-full"
+          className="w-full h-14 text-lg font-medium bg-gradient-to-r from-cyan-600 via-purple-600 to-pink-600 hover:from-cyan-500 hover:via-purple-500 hover:to-pink-500 border-0 shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 transition-all duration-300"
           disabled={isSaving}
         >
           {isSaving ? (
             <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
               Сохранение...
             </>
           ) : (
-            'Сохранить настройки'
+            <>
+              <Zap className="w-5 h-5 mr-2" />
+              Сохранить настройки
+            </>
           )}
         </Button>
-
-        {/* Additional Info */}
-        <div className="space-y-2 text-sm text-gray-600">
-          <p className="font-medium">Как это работает:</p>
-          <ul className="space-y-1 ml-4">
-            <li className="flex gap-2">
-              <span>•</span>
-              <span>Зрители получают монеты автоматически во время просмотра</span>
-            </li>
-            <li className="flex gap-2">
-              <span>•</span>
-              <span>Начисления происходят только когда вы в эфире</span>
-            </li>
-            <li className="flex gap-2">
-              <span>•</span>
-              <span>Полученные монеты можно потратить на донаты</span>
-            </li>
-          </ul>
-        </div>
-      </CardContent>
-    </Card>
+      </motion.div>
+    </div>
   );
 }

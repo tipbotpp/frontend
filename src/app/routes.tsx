@@ -5,6 +5,7 @@ import { StreamerPage } from './pages/StreamerPage';
 import { Dashboard } from './pages/Dashboard';
 import { Settings } from './pages/Settings';
 import { Profile } from './pages/Profile';
+import { Widget } from './pages/Widget';
 
 // Проверка авторизации
 const authLoader = async () => {
@@ -43,6 +44,10 @@ export const router = createHashRouter([
         path: 'settings', 
         Component: Settings,
         loader: authLoader,
+      },
+      {
+        path: 'widget',
+        element: <Widget />,
       },
       { 
         path: 'profile', 
