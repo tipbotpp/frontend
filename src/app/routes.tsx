@@ -35,27 +35,16 @@ export const router = createHashRouter([
     children: [
       { index: true, Component: Home },
       { path: 'streamer/:streamerId', Component: StreamerPage },
-      { 
-        path: 'dashboard', 
-        Component: Dashboard,
-        loader: streamerLoader,
-      },
-      { 
-        path: 'settings', 
-        Component: Settings,
-        loader: authLoader,
-      },
-      {
-        path: 'widget',
-        element: <Widget />,
-      },
-      { 
-        path: 'profile', 
-        Component: Profile,
-        loader: authLoader,
-      },
+      { path: 'dashboard', Component: Dashboard },
+      { path: 'settings', Component: Settings },
+      { path: 'profile', Component: Profile },
       { path: 'auth', element: <Navigate to="/" replace /> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
+  },
+  // Виджет без Layout
+  {
+    path: 'widget/:streamToken',
+    Component: Widget,
   },
 ]);
