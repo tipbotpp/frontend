@@ -37,7 +37,7 @@ export function Home() {
       setBalance(balanceData.balance);
       
       try {
-        const streamersData = await userApi.getStreamers({ limit: 50 }); // ← БЫЛО streamerApi.getAll
+        const streamersData = await userApi.getStreamers({ limit: 50 });
         setStreamers(streamersData.items);
       } catch (err) {
         console.warn('Streamers endpoint not available yet');
@@ -139,37 +139,36 @@ export function Home() {
             
             {/* Balance Card */}
             <motion.div 
-              className="relative overflow-hidden rounded-2xl p-6 bg-gradient-to-br from-gray-900/80 via-gray-900/60 to-gray-800/40 backdrop-blur-xl border border-gray-700/50"
+              className="relative overflow-hidden rounded-2xl p-4 bg-gradient-to-br from-gray-900/80 via-gray-900/60 to-gray-800/40 backdrop-blur-xl border border-gray-700/50"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.4 }}
             >
-              {/* Glow эффект */}
               <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/5 via-purple-500/5 to-pink-500/5" />
               
               <div className="relative flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm mb-2">Ваш баланс</p>
+                  <p className="text-gray-400 text-xs mb-1">Ваш баланс</p>
                   <div className="flex items-baseline gap-1">
-                    <p className="text-5xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                      {balance}
+                    <p className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                      {balance.toLocaleString()}
                     </p>
-                    <p className="text-gray-500 text-lg">coins</p>
+                    <p className="text-gray-500 text-sm">coins</p>
                   </div>
                 </div>
                 <motion.button
                   onClick={() => setDepositDialogOpen(true)}
-                  className="flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border border-cyan-500/30 text-cyan-400 font-medium hover:from-cyan-500/30 hover:to-purple-500/30 transition-all duration-300"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border border-cyan-500/30 text-cyan-400 text-sm font-medium hover:from-cyan-500/30 hover:to-purple-500/30 transition-all duration-300"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <Plus className="w-5 h-5" />
+                  <Plus className="w-4 h-4" />
                   Пополнить
                 </motion.button>
               </div>
             </motion.div>
           </div>
-        </motion.div>
+        </motion.div> {/* 🔥 ЗАКРЫВАЮЩИЙ ТЕГ ДОБАВЛЕН ЗДЕСЬ */}
 
         {/* Search */}
         <div className="px-6 -mt-5 mb-6 relative z-20">
@@ -221,7 +220,6 @@ export function Home() {
                   whileHover={{ scale: 1.01 }}
                   className="relative group"
                 >
-                  {/* Glow при наведении */}
                   <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-purple-500/10 to-pink-500/10 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                   
                   <div className="relative bg-gray-900/60 backdrop-blur-xl border border-gray-700/50 rounded-2xl overflow-hidden group-hover:border-gray-600/50 transition-all duration-300">
@@ -249,9 +247,7 @@ export function Home() {
                               <Users className="w-4 h-4 text-gray-500 flex-shrink-0" />
                             )}
                           </div>
-                          <p className="text-sm text-gray-400 truncate mb-3">
-                            Стример
-                          </p>
+                          <p className="text-sm text-gray-400 truncate mb-3">Стример</p>
                           
                           {streamer.goal && (
                             <div className="mb-3">
