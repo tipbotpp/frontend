@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
-import { User, Settings, ArrowUpRight, ArrowDownRight, TrendingUp, Clock, RefreshCcw, Copy, Check, Wallet } from 'lucide-react';
+import { User, ArrowUpRight, TrendingUp, Wallet } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Badge } from '../components/ui/badge';
-import { Button } from '../components/ui/button';
-import { toast } from 'sonner';
 import { userApi, balanceApi, donationApi } from '../../services/api';
 import type { User as UserType, DonationHistoryItem } from '../types';
 
@@ -14,7 +12,6 @@ export function Profile() {
   const [user, setUser] = useState<UserType | null>(null);
   const [balance, setBalance] = useState(0);
   const [donations, setDonations] = useState<DonationHistoryItem[]>([]);
-  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -23,43 +20,24 @@ export function Profile() {
   const loadProfile = async () => {
     try {
       setIsLoading(true);
-      const [userData, balanceData, donationsData] = await Promise.all([
+      const [userData, balanceData] = await Promise.all([
         userApi.getMe(),
         balanceApi.get(),
-        donationApi.getHistory({ limit: 20 }).catch(() => ({ items: [], total: 0, limit: 20, offset: 0 })),
       ]);
-      
+
       setUser(userData);
       setBalance(balanceData.balance);
-      setDonations(donationsData.items || []);
+
+      try {
+        const donationsData = await donationApi.getHistory({ limit: 50 });
+        setDonations(donationsData.items || []);
+      } catch {
+        setDonations([]);
+      }
     } catch (error) {
       console.error('Failed to load profile:', error);
-      toast.error('Не удалось загрузить профиль');
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleCopyId = () => {
-    if (user) {
-      navigator.clipboard.writeText(String(user.id));
-      setCopied(true);
-      toast.success('ID скопирован');
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  const handleSwitchRole = async () => {
-    try {
-      const newRole = user?.role === 'streamer' ? 'viewer' : 'streamer';
-      const updatedUser = await userApi.setRole(newRole);
-      setUser(updatedUser);
-      if (updatedUser.balance) {
-        setBalance(updatedUser.balance);
-      }
-      toast.success(`Роль изменена на "${newRole === 'streamer' ? 'Стример' : 'Зритель'}"`);
-    } catch (error: any) {
-      toast.error(error?.message || 'Не удалось изменить роль');
     }
   };
 
@@ -68,25 +46,33 @@ export function Profile() {
       day: '2-digit',
       month: 'short',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'delivered': return 'bg-green-500/20 text-green-400 border-green-500/30';
-      case 'rejected': return 'bg-red-500/20 text-red-400 border-red-500/30';
-      case 'processing': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-      default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+      case 'delivered':
+        return 'bg-green-500/20 text-green-400 border-green-500/30';
+      case 'rejected':
+        return 'bg-red-500/20 text-red-400 border-red-500/30';
+      case 'processing':
+        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+      default:
+        return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'delivered': return 'Доставлен';
-      case 'rejected': return 'Отклонён';
-      case 'processing': return 'В обработке';
-      default: return status;
+      case 'delivered':
+        return 'Доставлен';
+      case 'rejected':
+        return 'Отклонён';
+      case 'processing':
+        return 'Обработка';
+      default:
+        return status;
     }
   };
 
@@ -95,76 +81,58 @@ export function Profile() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-b from-[#0a0a0f] via-[#0f0f1a] to-[#0a0a0f] flex items-center justify-center">
         <div className="text-center">
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
             className="w-16 h-16 mx-auto mb-4 rounded-full border-2 border-transparent border-t-indigo-400 border-r-purple-500"
           />
-          <p className="text-gray-400">Загрузка профиля...</p>
+          <p className="text-gray-400 text-sm">Загрузка профиля...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] relative overflow-hidden pb-6">
-      {/* Анимированный фон */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000" />
-      </div>
-
-      <div className="relative z-10">
+    <div className="min-h-screen bg-gradient-to-b from-[#0a0a0f] via-[#0f0f1a] to-[#0a0a0f]">
+      <div className="pb-6">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden bg-gradient-to-br from-[#0f0f1a] via-[#13132b] to-[#0a0a1a] border-b border-gray-800/50"
+          className="relative overflow-hidden bg-[#0f0f1a]/80 backdrop-blur-xl border-b border-gray-800/50"
         >
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-indigo-400 to-transparent" />
-            <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-purple-400 to-transparent" />
-          </div>
-
-          <div className="px-6 pt-10 pb-8 relative">
+          <div className="px-4 sm:px-6 pt-6 sm:pt-8 pb-6 relative">
             {/* User Info */}
-            <div className="flex items-center gap-4 mb-6">
+            <div className="flex items-center gap-3 sm:gap-4 mb-5">
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: 'spring', stiffness: 200, delay: 0.2 }}
-                className="relative"
+                className="relative flex-shrink-0"
               >
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-2xl font-bold text-white ring-2 ring-indigo-500/50">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xl sm:text-2xl font-bold text-white ring-2 ring-indigo-500/30 shadow-lg shadow-indigo-500/20">
                   {(user?.display_name?.[0] || user?.username?.[0] || '?').toUpperCase()}
                 </div>
-                <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-green-500 border-2 border-gray-900 flex items-center justify-center">
-                  <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-green-500 border-2 border-[#0f0f1a] flex items-center justify-center">
+                  <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
                 </div>
               </motion.div>
 
-              <div className="flex-1">
-                <h1 className="text-2xl font-bold text-white">
+              <div className="flex-1 min-w-0">
+                <h1 className="text-xl sm:text-2xl font-bold text-white truncate">
                   {user?.display_name || user?.username || 'Пользователь'}
                 </h1>
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge className={`${
-                    user?.role === 'streamer' 
+                <Badge
+                  className={`mt-1.5 text-xs ${
+                    user?.role === 'streamer'
                       ? 'bg-gradient-to-r from-indigo-500/20 to-purple-500/20 text-indigo-400 border-indigo-500/30'
                       : 'bg-gradient-to-r from-cyan-500/20 to-teal-500/20 text-cyan-400 border-cyan-500/30'
-                  }`}>
-                    {user?.role === 'streamer' ? '🎥 Стример' : '👀 Зритель'}
-                  </Badge>
-                  <button
-                    onClick={handleCopyId}
-                    className="text-gray-500 hover:text-gray-300 transition-colors text-sm flex items-center gap-1"
-                  >
-                    ID: {user?.id}
-                    {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
-                  </button>
-                </div>
+                  }`}
+                >
+                  {user?.role === 'streamer' ? 'Стример' : 'Зритель'}
+                </Badge>
               </div>
             </div>
 
@@ -173,214 +141,196 @@ export function Profile() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.3 }}
-              className="relative overflow-hidden rounded-2xl p-6 bg-gradient-to-br from-gray-900/80 via-gray-900/60 to-gray-800/40 backdrop-blur-xl border border-gray-700/50"
+              className="relative overflow-hidden rounded-2xl p-4 sm:p-5 bg-gray-900/60 backdrop-blur-xl border border-gray-800/50"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 via-purple-500/5 to-pink-500/5" />
-              
               <div className="relative flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm mb-2">Текущий баланс</p>
-                  <div className="flex items-baseline gap-1">
-                    <p className="text-5xl font-bold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                      {balance}
+                  <p className="text-gray-500 text-xs sm:text-sm mb-1">Баланс</p>
+                  <div className="flex items-baseline gap-1.5">
+                    <p className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                      {balance.toLocaleString()}
                     </p>
-                    <p className="text-gray-500 text-lg">coins</p>
+                    <p className="text-gray-500 text-sm">coins</p>
                   </div>
                 </div>
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 flex items-center justify-center">
-                  <Wallet className="w-6 h-6 text-indigo-400" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/20 flex items-center justify-center">
+                  <Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-400" />
                 </div>
               </div>
             </motion.div>
           </div>
         </motion.div>
 
-        {/* Switch Role */}
-        <div className="px-6 -mt-4 mb-6">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            <Card className="bg-gray-900/60 backdrop-blur-xl border-gray-800/50">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-white font-medium">Переключить роль</p>
-                    <p className="text-gray-400 text-sm">
-                      {user?.role === 'streamer' 
-                        ? 'Перейти в режим зрителя для отправки донатов'
-                        : 'Перейти в режим стримера для управления стримом'}
-                    </p>
-                  </div>
-                  <Button
-                    onClick={handleSwitchRole}
-                    className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 border-0"
-                  >
-                    <RefreshCcw className="w-4 h-4 mr-2" />
-                    {user?.role === 'streamer' ? 'Стать зрителем' : 'Стать стримером'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
-
         {/* Tabs */}
-        <div className="px-6">
-          <Tabs defaultValue="donations" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2 bg-gray-900/60 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-1.5">
-              <TabsTrigger
-                value="donations"
-                className="gap-2 py-3 rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-purple-600 data-[state=active]:text-white text-gray-400"
-              >
-                <ArrowUpRight className="w-4 h-4" />
-                <span>Донаты ({donationCount})</span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="stats"
-                className="gap-2 py-3 rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-purple-600 data-[state=active]:text-white text-gray-400"
-              >
-                <TrendingUp className="w-4 h-4" />
-                <span>Статистика</span>
-              </TabsTrigger>
-            </TabsList>
+        <div className="px-4 sm:px-6 -mt-2 relative z-10">
+          <Tabs defaultValue="donations" className="space-y-0">
+            {/* Общая обёртка с единым бордером */}
+            <div className="bg-gray-900/60 backdrop-blur-xl border border-gray-800/50 rounded-2xl overflow-hidden shadow-lg">
+              {/* Кнопки табов */}
+              <TabsList className="grid w-full grid-cols-2 bg-transparent border-b border-gray-800/50 p-1.5 rounded-none">
+                <TabsTrigger
+                  value="donations"
+                  className="flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-all duration-300
+                    data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-purple-600 
+                    data-[state=active]:text-white data-[state=active]:shadow-md
+                    text-gray-400 hover:text-gray-200"
+                >
+                  <ArrowUpRight className="w-4 h-4" />
+                  Донаты
+                  {donationCount > 0 && (
+                    <span className="ml-1 px-1.5 py-0.5 rounded-full bg-white/20 text-xs font-bold">
+                      {donationCount}
+                    </span>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger
+                  value="stats"
+                  className="flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-all duration-300
+                    data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-purple-600 
+                    data-[state=active]:text-white data-[state=active]:shadow-md
+                    text-gray-400 hover:text-gray-200"
+                >
+                  <TrendingUp className="w-4 h-4" />
+                  Статистика
+                </TabsTrigger>
+              </TabsList>
 
-            {/* Donations Tab */}
-            <TabsContent value="donations" className="space-y-4">
-              <AnimatePresence>
-                {donations.length === 0 ? (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-center py-16"
-                  >
-                    <div className="text-5xl mb-4">💝</div>
-                    <p className="text-gray-400 text-lg">Донаты отсутствуют</p>
-                    <p className="text-gray-500 text-sm mt-1">Отправьте первый донат любимому стримеру!</p>
-                  </motion.div>
-                ) : (
-                  <div className="space-y-3">
-                    {donations.map((donation, index) => (
+              {/* Контент */}
+              <div className="p-4">
+                {/* Donations Tab */}
+                <TabsContent value="donations" className="space-y-3 mt-0">
+                  <AnimatePresence mode="wait">
+                    {donations.length === 0 ? (
                       <motion.div
-                        key={donation.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.05 }}
+                        key="empty"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        className="text-center py-10"
                       >
-                        <Card className="bg-gray-900/60 backdrop-blur-xl border-gray-700/30 hover:border-indigo-500/30 transition-all duration-300">
-                          <CardContent className="p-4">
-                            <div className="flex items-start justify-between mb-2">
-                              <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-white truncate">
-                                  {donation.from_user.username || 'Аноним'} → {donation.to_streamer.username || 'Стример'}
-                                </p>
-                                <p className="text-sm text-gray-500 mt-0.5">
-                                  {formatDate(donation.created_at)}
-                                </p>
-                              </div>
-                              <div className="text-right ml-4">
-                                <p className="text-xl font-bold bg-gradient-to-r from-red-400 to-pink-400 bg-clip-text text-transparent">
-                                  -{donation.amount} coins
-                                </p>
-                                <Badge className={getStatusColor(donation.status)}>
-                                  {getStatusText(donation.status)}
-                                </Badge>
-                              </div>
-                            </div>
-                            {donation.message && (
-                              <div className="mt-2 p-3 bg-gray-800/50 rounded-lg">
-                                <p className="text-sm text-gray-300 italic">
-                                  "{donation.message}"
-                                </p>
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
+                        <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-gray-800/50 flex items-center justify-center">
+                          <ArrowUpRight className="w-7 h-7 text-gray-600" />
+                        </div>
+                        <p className="text-gray-400 text-sm font-medium">Донатов пока нет</p>
+                        <p className="text-gray-600 text-xs mt-1">Отправьте первый донат стримеру</p>
                       </motion.div>
-                    ))}
-                  </div>
-                )}
-              </AnimatePresence>
-            </TabsContent>
-
-            {/* Stats Tab */}
-            <TabsContent value="stats" className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
-                >
-                  <Card className="bg-gray-900/60 backdrop-blur-xl border-gray-800/50 relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 to-pink-500/5" />
-                    <CardContent className="p-6 relative">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
-                          <ArrowUpRight className="w-5 h-5 text-red-400" />
-                        </div>
-                        <span className="text-gray-400">Всего отправлено</span>
-                      </div>
-                      <p className="text-3xl font-bold text-red-400">
-                        {totalDonations} <span className="text-sm text-red-500">coins</span>
-                      </p>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  <Card className="bg-gray-900/60 backdrop-blur-xl border-gray-800/50 relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-r from-green-500/5 to-teal-500/5" />
-                    <CardContent className="p-6 relative">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
-                          <TrendingUp className="w-5 h-5 text-green-400" />
-                        </div>
-                        <span className="text-gray-400">Количество донатов</span>
-                      </div>
-                      <p className="text-3xl font-bold text-green-400">
-                        {donationCount}
-                      </p>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="sm:col-span-2"
-                >
-                  <Card className="bg-gray-900/60 backdrop-blur-xl border-gray-800/50">
-                    <CardHeader>
-                      <CardTitle className="text-white flex items-center gap-2">
-                        <User className="w-5 h-5 text-indigo-400" />
-                        Информация о профиле
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        {[
-                          { label: 'ID пользователя', value: String(user?.id) },
-                          { label: 'Telegram ID', value: String(user?.telegram_id) },
-                          { label: 'Роль', value: user?.role === 'streamer' ? 'Стример' : 'Зритель' },
-                          { label: 'Дата регистрации', value: user?.created_at ? formatDate(user.created_at) : '—' },
-                        ].map((item) => (
-                          <div key={item.label} className="flex justify-between py-2 border-b border-gray-800 last:border-0">
-                            <span className="text-gray-400">{item.label}</span>
-                            <span className="text-white font-medium">{item.value}</span>
-                          </div>
+                    ) : (
+                      <motion.div
+                        key="list"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="space-y-2"
+                      >
+                        {donations.map((donation, index) => (
+                          <motion.div
+                            key={donation.id}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.03 }}
+                          >
+                            <Card className="bg-gray-800/40 backdrop-blur-sm border-gray-700/30 hover:border-indigo-500/20 transition-all duration-300">
+                              <CardContent className="p-3 sm:p-4">
+                                <div className="flex items-start justify-between gap-2 mb-1.5">
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-white text-sm truncate">
+                                      {donation.to_streamer.username || 'Стример'}
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-0.5">{formatDate(donation.created_at)}</p>
+                                  </div>
+                                  <div className="text-right flex-shrink-0">
+                                    <p className="text-base font-bold text-red-400">-{donation.amount}</p>
+                                    <Badge className={`text-[10px] px-1.5 py-0 ${getStatusColor(donation.status)}`}>
+                                      {getStatusText(donation.status)}
+                                    </Badge>
+                                  </div>
+                                </div>
+                                {donation.message && (
+                                  <div className="mt-1.5 p-2 bg-gray-900/40 rounded-lg">
+                                    <p className="text-xs text-gray-400 italic leading-relaxed">
+                                      "{donation.message}"
+                                    </p>
+                                  </div>
+                                )}
+                              </CardContent>
+                            </Card>
+                          </motion.div>
                         ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </TabsContent>
+
+                {/* Stats Tab */}
+                <TabsContent value="stats" className="space-y-3 mt-0">
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+                  >
+                    <Card className="bg-gray-800/40 backdrop-blur-sm border-gray-700/30 relative overflow-hidden">
+                      <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-transparent" />
+                      <CardContent className="p-4 sm:p-5 relative">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
+                            <ArrowUpRight className="w-4 h-4 text-red-400" />
+                          </div>
+                          <span className="text-gray-500 text-xs sm:text-sm">Отправлено</span>
+                        </div>
+                        <p className="text-2xl sm:text-3xl font-bold text-red-400">
+                          {totalDonations.toLocaleString()}
+                          <span className="text-xs text-red-500/70 font-normal ml-1">coins</span>
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-gray-800/40 backdrop-blur-sm border-gray-700/30 relative overflow-hidden">
+                      <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent" />
+                      <CardContent className="p-4 sm:p-5 relative">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center">
+                            <TrendingUp className="w-4 h-4 text-green-400" />
+                          </div>
+                          <span className="text-gray-500 text-xs sm:text-sm">Донатов</span>
+                        </div>
+                        <p className="text-2xl sm:text-3xl font-bold text-green-400">
+                          {donationCount}
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-gray-800/40 backdrop-blur-sm border-gray-700/30 sm:col-span-2">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-white text-base flex items-center gap-2">
+                          <User className="w-4 h-4 text-indigo-400" />
+                          Профиль
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pb-4">
+                        <div className="space-y-2">
+                          {[
+                            { label: 'ID', value: user?.id ?? '—' },
+                            { label: 'Telegram ID', value: user?.telegram_id ?? '—' },
+                            { label: 'Роль', value: user?.role === 'streamer' ? 'Стример' : 'Зритель' },
+                            { label: 'Регистрация', value: user?.created_at ? formatDate(user.created_at) : '—' },
+                          ].map((item) => (
+                            <div
+                              key={item.label}
+                              className="flex justify-between items-center py-1.5 border-b border-gray-700/30 last:border-0"
+                            >
+                              <span className="text-gray-500 text-xs sm:text-sm">{item.label}</span>
+                              <span className="text-gray-300 text-xs sm:text-sm font-medium text-right ml-2">
+                                {item.value}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                </TabsContent>
               </div>
-            </TabsContent>
+            </div>
           </Tabs>
         </div>
       </div>

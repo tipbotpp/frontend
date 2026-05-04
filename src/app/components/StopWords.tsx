@@ -20,11 +20,12 @@ export function StopWords() {
   useEffect(() => {
     loadStopWords();
   }, []);
+
   const loadStopWords = async () => {
     try {
       setIsLoading(true);
-      const words = await stopWordsApi.getAll(); // Теперь возвращает StopWord[]
-      setStopWords(words);
+      const words = await stopWordsApi.getAll();
+      setStopWords(Array.isArray(words) ? words : []);
     } catch (error) {
       console.warn('Stop words not available yet');
       setStopWords([]);
@@ -41,7 +42,7 @@ export function StopWords() {
       return;
     }
 
-    if (stopWords.some(w => w.word.toLowerCase() === trimmedWord)) {
+    if ((stopWords || []).some(w => w.word.toLowerCase() === trimmedWord)) {
       toast.error('Это слово уже в списке');
       return;
     }
@@ -49,7 +50,7 @@ export function StopWords() {
     setIsAdding(true);
     try {
       const addedWord = await stopWordsApi.add(trimmedWord);
-      setStopWords([...stopWords, addedWord]);
+      setStopWords(prev => [...(prev || []), addedWord]);
       setNewWord('');
       toast.success(
         <div className="flex items-center gap-2">
@@ -68,7 +69,7 @@ export function StopWords() {
     setDeletingId(wordId);
     try {
       await stopWordsApi.remove(wordId);
-      setStopWords(stopWords.filter(w => w.id !== wordId));
+      setStopWords(prev => (prev || []).filter(w => w.id !== wordId));
       toast.info(
         <div className="flex items-center gap-2">
           <Trash2 className="w-4 h-4 text-red-400" />
@@ -81,6 +82,10 @@ export function StopWords() {
       setDeletingId(null);
     }
   };
+
+  // Безопасная переменная
+  const words = stopWords || [];
+  const wordsCount = words.length;
 
   if (isLoading) {
     return (
@@ -96,9 +101,8 @@ export function StopWords() {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0f0f1a] via-[#13132b] to-[#0a0a1a] border border-gray-800/50 p-8"
+        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0f0f1a] via-[#13132b] to-[#0a0a1a] border border-gray-800/50 p-6 sm:p-8"
       >
-        {/* Анимированный фон */}
         <div className="absolute inset-0">
           <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/10 rounded-full blur-3xl" />
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-orange-500/10 rounded-full blur-3xl" />
@@ -138,14 +142,14 @@ export function StopWords() {
         transition={{ delay: 0.2 }}
       >
         <Card className="bg-gray-900/60 backdrop-blur-xl border-gray-800/50">
-          <CardContent className="p-6">
-            <div className="flex gap-3">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex gap-2 sm:gap-3">
               <div className="flex-1 relative">
                 <Input
                   placeholder="Введите запрещённое слово..."
                   value={newWord}
                   onChange={(e) => setNewWord(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && !isAdding && handleAddWord()}
+                  onKeyDown={(e) => e.key === 'Enter' && !isAdding && handleAddWord()}
                   disabled={isAdding}
                   className="h-12 bg-gray-800 border-gray-700 text-white placeholder-gray-500 focus:border-red-500/50 focus:ring-1 focus:ring-red-500/30 rounded-xl pr-12"
                 />
@@ -154,14 +158,14 @@ export function StopWords() {
               <Button 
                 onClick={handleAddWord} 
                 disabled={isAdding}
-                className="h-12 px-6 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 border-0 shadow-lg shadow-red-500/20 hover:shadow-red-500/40 transition-all duration-300 rounded-xl"
+                className="h-12 px-4 sm:px-6 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 border-0 shadow-lg shadow-red-500/20 hover:shadow-red-500/40 transition-all duration-300 rounded-xl"
               >
                 {isAdding ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
                   <>
-                    <Plus className="w-5 h-5 mr-2" />
-                    Добавить
+                    <Plus className="w-4 h-4 sm:w-5 sm:h-5 sm:mr-2" />
+                    <span className="hidden sm:inline">Добавить</span>
                   </>
                 )}
               </Button>
@@ -185,49 +189,48 @@ export function StopWords() {
                   Список запрещённых слов
                 </CardTitle>
                 <CardDescription className="text-gray-400">
-                  {stopWords.length === 0 
+                  {wordsCount === 0 
                     ? 'Список пуст — добавьте первое слово' 
-                    : `${stopWords.length} ${stopWords.length === 1 ? 'слово' : stopWords.length < 5 ? 'слова' : 'слов'} в списке`}
+                    : `${wordsCount} ${wordsCount === 1 ? 'слово' : wordsCount < 5 ? 'слова' : 'слов'} в списке`}
                 </CardDescription>
               </div>
-              {stopWords.length > 0 && (
+              {wordsCount > 0 && (
                 <Badge className="bg-red-500/20 text-red-400 border-red-500/30 px-3 py-1">
-                  {stopWords.length}
+                  {wordsCount}
                 </Badge>
               )}
             </div>
           </CardHeader>
           <CardContent>
-            <AnimatePresence>
-              {stopWords.length === 0 ? (
-                <motion.div 
-                  className="text-center py-12"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
+            {wordsCount === 0 ? (
+              <motion.div 
+                className="text-center py-12"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+              >
+                <motion.div
+                  animate={{ y: [0, -10, 0] }}
+                  transition={{ duration: 3, repeat: Infinity }}
+                  className="text-5xl mb-4"
                 >
-                  <motion.div
-                    animate={{ y: [0, -10, 0] }}
-                    transition={{ duration: 3, repeat: Infinity }}
-                    className="text-5xl mb-4"
-                  >
-                    🛡️
-                  </motion.div>
-                  <p className="text-gray-400 text-lg">Список пуст</p>
-                  <p className="text-gray-500 text-sm mt-1">
-                    Добавьте слова, которые должны фильтроваться в сообщениях донатов
-                  </p>
+                  🛡️
                 </motion.div>
-              ) : (
-                <div className="space-y-2">
-                  {stopWords.map((word, index) => (
+                <p className="text-gray-400 text-lg">Список пуст</p>
+                <p className="text-gray-500 text-sm mt-1">
+                  Добавьте слова, которые должны фильтроваться в сообщениях донатов
+                </p>
+              </motion.div>
+            ) : (
+              <div className="space-y-2">
+                <AnimatePresence>
+                  {words.map((word, index) => (
                     <motion.div
                       key={word.id}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 20, scale: 0.95 }}
                       transition={{ delay: index * 0.05 }}
-                      className="flex items-center justify-between p-4 bg-gray-800/30 rounded-xl border border-gray-700/30 group hover:border-red-500/30 hover:bg-gray-800/50 transition-all duration-300"
+                      className="flex items-center justify-between p-3 sm:p-4 bg-gray-800/30 rounded-xl border border-gray-700/30 group hover:border-red-500/30 hover:bg-gray-800/50 transition-all duration-300"
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-lg bg-red-500/20 flex items-center justify-center flex-shrink-0">
@@ -253,9 +256,9 @@ export function StopWords() {
                       </Button>
                     </motion.div>
                   ))}
-                </div>
-              )}
-            </AnimatePresence>
+                </AnimatePresence>
+              </div>
+            )}
           </CardContent>
         </Card>
       </motion.div>

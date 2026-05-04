@@ -45,27 +45,22 @@ export function Dashboard() {
   const wsRef = useRef<WebSocket | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // 🔥 Хуки для графика и звука
   const { data: chartData, flashType, addDonation, setInitialData } = useLiveChart();
   const { init: initSound, play: playSound } = useSound();
 
-  // Инициализация звука
   useEffect(() => {
     initSound();
   }, []);
 
-  // Загрузка статуса стрима
   useEffect(() => {
     loadStreamStatus();
     loadSessionStats();
   }, []);
 
-  // Подключение WebSocket
   useEffect(() => {
     if (isStreaming && streamStatus?.ws_url) {
       connectWebSocket(streamStatus.ws_url);
     }
-    
     return () => {
       disconnectWebSocket();
     };
@@ -73,29 +68,23 @@ export function Dashboard() {
 
   const connectWebSocket = (wsUrl: string) => {
     try {
-      console.log('[WebSocket] Connecting to:', wsUrl);
       const ws = new WebSocket(wsUrl);
-      
       ws.onopen = () => {
-        console.log('[WebSocket] Connected');
         setIsConnected(true);
         toast.success('Real-time график активирован');
       };
-      
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          
           if (data.type === 'donation' && data.donation) {
             handleNewDonation(data.donation);
           } else if (data.amount) {
             handleNewDonation(data);
           }
         } catch (error) {
-          console.error('[WebSocket] Failed to parse message:', error);
+          console.error('[WebSocket] Parse error:', error);
         }
       };
-      
       ws.onerror = () => setIsConnected(false);
       ws.onclose = () => {
         setIsConnected(false);
@@ -107,7 +96,6 @@ export function Dashboard() {
           }, 3000);
         }
       };
-      
       wsRef.current = ws;
     } catch (error) {
       console.error('[WebSocket] Connection failed:', error);
@@ -124,26 +112,17 @@ export function Dashboard() {
 
   const handleNewDonation = (donation: RealtimeDonation) => {
     setRecentDonations(prev => [donation, ...prev].slice(0, 20));
-    
-    // 🔥 Добавляем точку на график
     addDonation({
       id: donation.id,
       amount: donation.amount,
       username: donation.from_user.username || 'Аноним',
       timestamp: donation.created_at
     });
-    
-    // 🔔 Звук
     if (soundEnabled) {
-      if (donation.amount >= 1000) {
-        playSound('record');
-      } else if (donation.amount >= 500) {
-        playSound('large');
-      } else {
-        playSound('regular');
-      }
+      if (donation.amount >= 1000) playSound('record');
+      else if (donation.amount >= 500) playSound('large');
+      else playSound('regular');
     }
-    
     toast.success(
       <div className="flex items-center gap-2">
         <span>🎉</span>
@@ -153,7 +132,6 @@ export function Dashboard() {
       </div>,
       { duration: 3000 }
     );
-    
     loadSessionStats();
   };
 
@@ -162,9 +140,7 @@ export function Dashboard() {
       const status = await streamApi.getStatus() as ExtendedStreamStatusResponse;
       setStreamStatus(status);
       setIsStreaming(status.is_live);
-      if (status.widget_url) {
-        setWidgetUrl(status.widget_url);
-      }
+      if (status.widget_url) setWidgetUrl(status.widget_url);
     } catch (error) {
       console.error('Failed to load stream status:', error);
     } finally {
@@ -176,8 +152,6 @@ export function Dashboard() {
     try {
       const stats = await donationApi.getSessionStats();
       setSessionStats(stats);
-      
-      // 🔥 Загружаем исторические данные в график
       if (stats.timeline && stats.timeline.length > 0) {
         setInitialData(stats.timeline);
       }
@@ -242,7 +216,7 @@ export function Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto mb-4"></div>
           <p className="text-gray-400">Загрузка Dashboard...</p>
@@ -252,89 +226,79 @@ export function Dashboard() {
   }
 
   return (
-    <div ref={containerRef} className="min-h-screen bg-gray-950 pb-6">
-      {/* Header с анимацией */}
+    <div ref={containerRef} className="min-h-screen bg-[#0a0a0f] pb-6">
+      {/* Header */}
       <motion.div 
-        className="bg-gradient-to-r from-teal-900 via-emerald-900 to-cyan-900 text-white px-6 py-8"
+        className="bg-gradient-to-r from-teal-900 via-emerald-900 to-cyan-900 text-white px-4 sm:px-6 py-5 sm:py-6"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <h1 className="text-2xl font-bold mb-2">Dashboard Стримера</h1>
-        <p className="text-teal-300">Управление стримом в реальном времени</p>
+        <h1 className="text-xl sm:text-2xl font-bold mb-1">Dashboard</h1>
+        <p className="text-teal-300/80 text-xs sm:text-sm">Управление стримом</p>
       </motion.div>
 
-      <div className="px-6 -mt-4 space-y-6">
-        {/* Stream Control */}
-        <Card className="shadow-xl border-gray-800 bg-gray-900">
-          <CardHeader>
+      <div className="px-4 sm:px-6 mt-4 space-y-4">
+        {/* Stream Control — КОМПАКТНЫЙ */}
+        <Card className="shadow-lg border-gray-800/50 bg-gray-900/80 backdrop-blur-sm">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-white">Статус стрима</CardTitle>
-              {isStreaming && (
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse shadow-lg shadow-green-500/50' : 'bg-red-500'}`} />
-                  <span className="text-xs text-gray-400">
-                    {isConnected ? 'Real-time активен' : 'Offline'}
-                  </span>
-                </div>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-6 bg-gradient-to-r from-teal-950 to-emerald-950 rounded-xl border border-teal-800/30">
-              <div>
-                <p className="text-sm text-teal-400 mb-1">Текущий статус</p>
-                <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-full ${isStreaming ? 'bg-red-500 animate-pulse shadow-lg shadow-red-500/50' : 'bg-gray-600'}`} />
-                  <p className="text-xl font-bold text-white">
-                    {isStreaming ? 'В ЭФИРЕ' : 'Офлайн'}
+              <div className="flex items-center gap-3">
+                <div className={`w-2.5 h-2.5 rounded-full ${isStreaming ? 'bg-red-500 animate-pulse shadow-lg shadow-red-500/50' : 'bg-gray-500'}`} />
+                <div>
+                  <p className="text-sm font-medium text-white">
+                    {isStreaming ? 'В эфире' : 'Офлайн'}
                   </p>
+                  {isStreaming && (
+                    <p className="text-xs text-teal-400/70">{formatDuration()}</p>
+                  )}
                 </div>
                 {isStreaming && (
-                  <p className="text-sm text-teal-400/70 mt-1">
-                    Время в эфире: {formatDuration()}
-                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <div className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+                    <span className="text-[10px] text-gray-500">{isConnected ? 'Live' : 'Off'}</span>
+                  </div>
                 )}
               </div>
-              <div className="flex gap-2">
+              
+              <div className="flex items-center gap-1.5">
                 {isStreaming && (
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="icon"
                     onClick={toggleSound}
-                    className="border-teal-800/50 hover:bg-teal-950/50"
-                    title={soundEnabled ? 'Выключить звук' : 'Включить звук'}
+                    className="h-9 w-9 text-gray-400 hover:text-white hover:bg-gray-800"
                   >
-                    {soundEnabled ? <Volume2 className="w-4 h-4 text-teal-400" /> : <VolumeX className="w-4 h-4 text-gray-500" />}
+                    {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
                   </Button>
                 )}
                 <Button
-                  size="lg"
+                  size="sm"
                   variant={isStreaming ? 'destructive' : 'default'}
                   onClick={handleToggleStream}
-                  className={`gap-2 ${!isStreaming ? 'bg-teal-600 hover:bg-teal-700' : ''}`}
+                  className={`gap-1.5 h-9 text-sm ${!isStreaming ? 'bg-teal-600 hover:bg-teal-700' : ''}`}
                 >
-                  <Power className="w-5 h-5" />
-                  {isStreaming ? 'Завершить' : 'Начать стрим'}
+                  <Power className="w-4 h-4" />
+                  {isStreaming ? 'Завершить' : 'Начать'}
                 </Button>
               </div>
             </div>
 
-            {widgetUrl && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-300">Ссылка на виджет для OBS</label>
-                <div className="flex gap-2">
+            {/* Widget URL — показывается только когда стрим активен */}
+            {widgetUrl && isStreaming && (
+              <div className="mt-3 pt-3 border-t border-gray-800/50">
+                <div className="flex gap-1.5">
                   <input
                     type="text"
                     value={widgetUrl}
                     readOnly
-                    className="flex-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-gray-300"
+                    className="flex-1 px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-xs text-gray-400 truncate"
                   />
-                  <Button variant="outline" size="icon" onClick={handleCopyWidget} className="border-gray-700">
-                    {copied ? <Check className="w-4 h-4 text-teal-400" /> : <Copy className="w-4 h-4" />}
+                  <Button variant="ghost" size="icon" onClick={handleCopyWidget} className="h-8 w-8 text-gray-400 hover:text-white">
+                    {copied ? <Check className="w-3.5 h-3.5 text-teal-400" /> : <Copy className="w-3.5 h-3.5" />}
                   </Button>
-                  <Button variant="outline" size="icon" onClick={() => window.open(widgetUrl, '_blank')} className="border-gray-700">
-                    <ExternalLink className="w-4 h-4" />
+                  <Button variant="ghost" size="icon" onClick={() => window.open(widgetUrl, '_blank')} className="h-8 w-8 text-gray-400">
+                    <ExternalLink className="w-3.5 h-3.5" />
                   </Button>
                 </div>
               </div>
@@ -342,80 +306,62 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <motion.div whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
-            <Card className="bg-gray-900 border-gray-800">
-              <CardHeader className="pb-3">
-                <CardDescription className="text-gray-400">Собрано за сессию</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold text-teal-400">
-                  {sessionStats?.total_collected || 0} <span className="text-sm text-teal-500">coins</span>
-                </p>
-              </CardContent>
-            </Card>
-          </motion.div>
+        {/* Quick Stats — КОМПАКТНЫЕ */}
+        <div className="grid grid-cols-3 gap-3">
+          <Card className="bg-gray-900/80 border-gray-800/50">
+            <CardContent className="p-3">
+              <p className="text-[10px] text-gray-500 mb-0.5">Собрано</p>
+              <p className="text-lg font-bold text-teal-400">
+                {sessionStats?.total_collected || 0}
+                <span className="text-[10px] text-teal-500/70 ml-0.5">coins</span>
+              </p>
+            </CardContent>
+          </Card>
 
-          <motion.div whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
-            <Card className="bg-gray-900 border-gray-800">
-              <CardHeader className="pb-3">
-                <CardDescription className="text-gray-400">Количество донатов</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold text-blue-400">
-                  {sessionStats?.donations_count || 0}
-                </p>
-              </CardContent>
-            </Card>
-          </motion.div>
+          <Card className="bg-gray-900/80 border-gray-800/50">
+            <CardContent className="p-3">
+              <p className="text-[10px] text-gray-500 mb-0.5">Донатов</p>
+              <p className="text-lg font-bold text-blue-400">
+                {sessionStats?.donations_count || 0}
+              </p>
+            </CardContent>
+          </Card>
 
-          <motion.div whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
-            <Card className="bg-gray-900 border-gray-800">
-              <CardHeader className="pb-3">
-                <CardDescription className="text-gray-400">Топ донатер</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="font-semibold text-white truncate">
-                  {sessionStats?.top_donator?.username || '—'}
-                </p>
-                <p className="text-xl font-bold text-purple-400">
-                  {sessionStats?.top_donator?.total_amount || 0} <span className="text-sm text-purple-500">coins</span>
-                </p>
-              </CardContent>
-            </Card>
-          </motion.div>
+          <Card className="bg-gray-900/80 border-gray-800/50">
+            <CardContent className="p-3">
+              <p className="text-[10px] text-gray-500 mb-0.5">Топ</p>
+              <p className="text-sm font-semibold text-white truncate">
+                {sessionStats?.top_donator?.username || '—'}
+              </p>
+              <p className="text-xs font-bold text-purple-400">
+                {sessionStats?.top_donator?.total_amount || 0}
+                <span className="text-[10px] text-purple-500/70 ml-0.5">coins</span>
+              </p>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* 🔥 LIVE CHART */}
+        {/* Chart */}
         {chartData.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
           >
-            <Card className="bg-gray-900 border-gray-800 shadow-xl">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <TrendingUpIcon className="w-5 h-5 text-teal-400" />
-                  График поступлений
+            <Card className="bg-gray-900/80 border-gray-800/50">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-white text-base flex items-center gap-2">
+                  <TrendingUpIcon className="w-4 h-4 text-teal-400" />
+                  График
                   {isConnected && (
-                    <span className="text-xs bg-teal-500/20 text-teal-400 px-2 py-0.5 rounded-full font-normal">
-                      LIVE
-                    </span>
+                    <span className="text-[10px] bg-teal-500/20 text-teal-400 px-1.5 py-0.5 rounded-full">LIVE</span>
                   )}
                 </CardTitle>
-                <CardDescription className="text-gray-400">
-                  {isConnected 
-                    ? 'Обновляется в реальном времени' 
-                    : 'Доходы за текущую сессию'}
-                </CardDescription>
               </CardHeader>
               <CardContent>
                 <LiveChart 
                   data={chartData} 
                   flashType={flashType}
-                  className="bg-gray-950/50 rounded-lg p-4"
+                  className="bg-gray-950/50 rounded-lg p-2"
                 />
               </CardContent>
             </Card>
@@ -424,41 +370,33 @@ export function Dashboard() {
 
         {/* Recent Donations */}
         {isStreaming && recentDonations.length > 0 && (
-          <Card className="bg-gray-900 border-gray-800">
-            <CardHeader>
-              <CardTitle className="text-white">Последние донаты</CardTitle>
-              <CardDescription className="text-gray-400">Real-time обновления</CardDescription>
+          <Card className="bg-gray-900/80 border-gray-800/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-white text-base">Последние донаты</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3 max-h-96 overflow-y-auto">
+              <div className="space-y-2 max-h-80 overflow-y-auto">
                 <AnimatePresence>
                   {recentDonations.map((donation) => (
                     <motion.div
                       key={donation.id}
-                      initial={{ opacity: 0, x: -20, scale: 0.95 }}
-                      animate={{ opacity: 1, x: 0, scale: 1 }}
-                      transition={{ duration: 0.3 }}
-                      className="flex items-start gap-3 p-3 bg-gray-800/50 rounded-lg border border-gray-700/30"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="flex items-center gap-2 p-2.5 bg-gray-800/40 rounded-lg border border-gray-700/30"
                     >
-                      <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg">
+                      <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                         {(donation.from_user.username?.[0] || 'A').toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1">
-                          <p className="font-medium text-white truncate">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium text-white truncate">
                             {donation.from_user.username || 'Аноним'}
                           </p>
-                          <p className="font-bold text-teal-400">+{donation.amount} coins</p>
+                          <p className="text-sm font-bold text-teal-400 ml-2">+{donation.amount}</p>
                         </div>
                         {donation.message && (
-                          <p className="text-sm text-gray-400 truncate">{donation.message}</p>
+                          <p className="text-xs text-gray-500 truncate">{donation.message}</p>
                         )}
-                        <p className="text-xs text-gray-500 mt-1">
-                          {new Date(donation.created_at).toLocaleTimeString('ru-RU', { 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
-                          })}
-                        </p>
                       </div>
                     </motion.div>
                   ))}
@@ -468,13 +406,14 @@ export function Dashboard() {
           </Card>
         )}
 
+        {/* Empty state */}
         {!isStreaming && (
-          <Card className="bg-gray-900 border-gray-800">
-            <CardContent className="py-12">
+          <Card className="bg-gray-900/80 border-gray-800/50">
+            <CardContent className="py-8">
               <div className="text-center">
-                <div className="text-4xl mb-4">🚀</div>
-                <p className="text-gray-400 text-lg">Готовы начать стрим?</p>
-                <p className="text-gray-500 text-sm mt-1">Нажмите "Начать стрим" для активации real-time графиков</p>
+                <div className="text-3xl mb-3">🚀</div>
+                <p className="text-gray-400 text-sm">Готовы начать стрим?</p>
+                <p className="text-gray-500 text-xs mt-1">Нажмите "Начать" для активации</p>
               </div>
             </CardContent>
           </Card>
