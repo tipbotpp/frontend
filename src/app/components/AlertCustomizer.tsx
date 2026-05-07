@@ -3,7 +3,7 @@ import { Play, Loader2, Palette, Type, Clock, Eye, Sparkles, Volume2, Image } fr
 import { motion, AnimatePresence } from 'motion/react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { Button } from './ui/button';
-import { Input } from './ui/input';  // 🔥 ДОБАВЛЕНО
+import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Slider } from './ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
@@ -50,7 +50,7 @@ export function AlertCustomizer() {
         userApi.getMe(),
         alertApi.getSettings().catch(() => null),
       ]);
-      
+
       setUser(userData);
       if (alertSettings) {
         setSettings(alertSettings);
@@ -62,9 +62,19 @@ export function AlertCustomizer() {
     }
   };
 
-  const handleTestAlert = () => {
+  // 🔥 Исправление №8: отправка тестового алерта в OBS
+  const handleTestAlert = async () => {
     setShowPreview(true);
-    toast.info('🎬 Тестовый алерт запущен!');
+
+    try {
+      await alertApi.sendTest();
+      toast.success('Тестовый алерт отправлен в OBS');
+    } catch (error: any) {
+      toast.error(
+        error?.message || 'Не удалось отправить тестовый алерт. Стрим должен быть активен.'
+      );
+    }
+
     setTimeout(() => setShowPreview(false), settings.duration_sec * 1000);
   };
 
@@ -94,7 +104,7 @@ export function AlertCustomizer() {
     }
   };
 
-  const applyPreset = (preset: typeof PRESET_THEMES[0]) => {
+  const applyPreset = (preset: (typeof PRESET_THEMES)[0]) => {
     setSettings({
       ...settings,
       bg_color: preset.bg,
@@ -118,7 +128,7 @@ export function AlertCustomizer() {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0f0f1a] via-[#13132b] to-[#0a0a1a] border border-gray-800/50 p-8"
+        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0f0f1a] via-[#13132b] to-[#0a0a1a] border border-gray-800/50 p-6 sm:p-8"
       >
         <div className="absolute inset-0">
           <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl" />
@@ -164,7 +174,7 @@ export function AlertCustomizer() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <div 
+                  <div
                     className="w-full h-16 rounded-lg mb-2 flex items-center justify-center text-xs font-bold"
                     style={{ backgroundColor: preset.bg, color: preset.text }}
                   >
@@ -194,7 +204,6 @@ export function AlertCustomizer() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Background Color */}
             <div className="space-y-3">
               <Label className="text-gray-300 flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: settings.bg_color }} />
@@ -217,7 +226,6 @@ export function AlertCustomizer() {
               </div>
             </div>
 
-            {/* Text Color */}
             <div className="space-y-3">
               <Label className="text-gray-300 flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: settings.text_color }} />
@@ -257,7 +265,6 @@ export function AlertCustomizer() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Font Select */}
             <div className="space-y-3">
               <Label className="text-gray-300">Шрифт</Label>
               <Select value={settings.font} onValueChange={(value) => setSettings({ ...settings, font: value })}>
@@ -274,7 +281,6 @@ export function AlertCustomizer() {
               </Select>
             </div>
 
-            {/* Duration Slider */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label className="text-gray-300 flex items-center gap-2">
@@ -315,7 +321,6 @@ export function AlertCustomizer() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* TTS Toggle */}
             <div className="flex items-center justify-between p-4 bg-gray-800/30 rounded-xl">
               <div className="flex items-center gap-3">
                 <Volume2 className="w-5 h-5 text-yellow-400" />
@@ -331,7 +336,6 @@ export function AlertCustomizer() {
               />
             </div>
 
-            {/* TTS Voice */}
             <AnimatePresence>
               {settings.tts_enabled && (
                 <motion.div
@@ -341,8 +345,8 @@ export function AlertCustomizer() {
                   className="space-y-3"
                 >
                   <Label className="text-gray-300">Голос озвучки</Label>
-                  <Select 
-                    value={settings.tts_voice} 
+                  <Select
+                    value={settings.tts_voice}
                     onValueChange={(value) => setSettings({ ...settings, tts_voice: value })}
                   >
                     <SelectTrigger className="h-12 bg-gray-800 border-gray-700 text-white">
@@ -351,10 +355,15 @@ export function AlertCustomizer() {
                     <SelectContent className="bg-gray-800 border-gray-700">
                       {TTS_VOICES.map((voice) => (
                         <SelectItem key={voice} value={voice} className="text-white hover:bg-gray-700 capitalize">
-                          {voice === 'default' ? 'Стандартный' : 
-                           voice === 'male' ? 'Мужской' :
-                           voice === 'female' ? 'Женский' :
-                           voice === 'robot' ? 'Робот' : 'Шёпот'}
+                          {voice === 'default'
+                            ? 'Стандартный'
+                            : voice === 'male'
+                              ? 'Мужской'
+                              : voice === 'female'
+                                ? 'Женский'
+                                : voice === 'robot'
+                                  ? 'Робот'
+                                  : 'Шёпот'}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -363,7 +372,6 @@ export function AlertCustomizer() {
               )}
             </AnimatePresence>
 
-            {/* Image Toggle */}
             <div className="flex items-center justify-between p-4 bg-gray-800/30 rounded-xl">
               <div className="flex items-center gap-3">
                 <Image className="w-5 h-5 text-pink-400" />
@@ -400,15 +408,17 @@ export function AlertCustomizer() {
           </CardHeader>
           <CardContent>
             <div className="aspect-video bg-gray-950 rounded-xl overflow-hidden relative border border-gray-800">
-              {/* Grid background */}
               <div className="absolute inset-0 opacity-5">
-                <div className="absolute inset-0" style={{
-                  backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
-                  backgroundSize: '20px 20px',
-                }} />
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    backgroundImage:
+                      'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
+                    backgroundSize: '20px 20px',
+                  }}
+                />
               </div>
 
-              {/* Preview Alert */}
               <AnimatePresence>
                 {showPreview && (
                   <motion.div
@@ -423,7 +433,7 @@ export function AlertCustomizer() {
                       fontFamily: settings.font,
                       padding: '2.5rem',
                       borderRadius: '1.5rem',
-                      minWidth: '350px',
+                      minWidth: '280px',
                       textAlign: 'center',
                       boxShadow: `0 0 60px ${settings.bg_color}40, 0 20px 40px rgba(0,0,0,0.5)`,
                     }}
@@ -466,7 +476,6 @@ export function AlertCustomizer() {
                 )}
               </AnimatePresence>
 
-              {/* Info text */}
               {!showPreview && (
                 <div className="absolute inset-0 flex items-center justify-center text-center p-4">
                   <div>
@@ -513,8 +522,8 @@ export function AlertCustomizer() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6 }}
       >
-        <Button 
-          onClick={handleSave} 
+        <Button
+          onClick={handleSave}
           className="w-full h-14 text-lg font-medium bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 hover:from-purple-500 hover:via-pink-500 hover:to-rose-500 border-0 shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 transition-all duration-300"
           disabled={isSaving}
         >

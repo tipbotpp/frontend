@@ -38,6 +38,7 @@ export interface UserRoleBody {
 // ========== Streamer ==========
 export interface StreamerItem {
   id: number;
+   telegram_id: number;
   username: string | null;
   display_name: string | null;
   avatar_url: string | null;
