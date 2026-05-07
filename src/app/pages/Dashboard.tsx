@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Power, Copy, Check, ExternalLink, Volume2, VolumeX, TrendingUp as TrendingUpIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Button } from '../components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { toast } from 'sonner';
 import { streamApi } from '../../services/api';
 import { donationApi } from '../../services/api';
@@ -37,16 +37,29 @@ export function Dashboard() {
   const [streamStatus, setStreamStatus] = useState<ExtendedStreamStatusResponse | null>(null);
   const [sessionStats, setSessionStats] = useState<SessionStats | null>(null);
   const [widgetUrl, setWidgetUrl] = useState('');
-  
+
   const [recentDonations, setRecentDonations] = useState<RealtimeDonation[]>([]);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
-  
+
   const wsRef = useRef<WebSocket | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // 🔥 Рефы для актуальных значений в замыканиях
+  const isStreamingRef = useRef(false);
+  const streamStatusRef = useRef<ExtendedStreamStatusResponse | null>(null);
+
   const { data: chartData, flashType, addDonation, setInitialData } = useLiveChart();
   const { init: initSound, play: playSound } = useSound();
+
+  // 🔥 Синхронизация рефов
+  useEffect(() => {
+    isStreamingRef.current = isStreaming;
+  }, [isStreaming]);
+
+  useEffect(() => {
+    streamStatusRef.current = streamStatus;
+  }, [streamStatus]);
 
   useEffect(() => {
     initSound();
@@ -76,7 +89,21 @@ export function Dashboard() {
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          if (data.type === 'donation' && data.donation) {
+
+          // 🔥 Исправление №2: правильный тип сообщений — new_alert
+          if (data.type === 'new_alert') {
+            handleNewDonation({
+              id: data.donation_id,
+              amount: data.amount,
+              message: data.message || null,
+              from_user: {
+                id: 0,
+                username: data.donor_name || 'Аноним',
+              },
+              created_at: new Date().toISOString(),
+            });
+          } else if (data.type === 'donation' && data.donation) {
+            // Обратная совместимость
             handleNewDonation(data.donation);
           } else if (data.amount) {
             handleNewDonation(data);
@@ -88,10 +115,11 @@ export function Dashboard() {
       ws.onerror = () => setIsConnected(false);
       ws.onclose = () => {
         setIsConnected(false);
-        if (isStreaming) {
+        // 🔥 Исправление №1: используем рефы для актуальных значений
+        if (isStreamingRef.current) {
           setTimeout(() => {
-            if (isStreaming && streamStatus?.ws_url) {
-              connectWebSocket(streamStatus.ws_url);
+            if (isStreamingRef.current && streamStatusRef.current?.ws_url) {
+              connectWebSocket(streamStatusRef.current.ws_url);
             }
           }, 3000);
         }
@@ -116,8 +144,29 @@ export function Dashboard() {
       id: donation.id,
       amount: donation.amount,
       username: donation.from_user.username || 'Аноним',
-      timestamp: donation.created_at
+      timestamp: donation.created_at,
     });
+
+    // 🔥 Исправление №4: локальное обновление статистики вместо API-запроса
+    setSessionStats(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        total_collected: prev.total_collected + donation.amount,
+        donations_count: prev.donations_count + 1,
+        top_donator: (() => {
+          // Проверяем, стал ли этот донатер топом
+          if (prev.top_donator && prev.top_donator.total_amount < donation.amount) {
+            return {
+              username: donation.from_user.username || 'Аноним',
+              total_amount: donation.amount,
+            };
+          }
+          return prev.top_donator;
+        })(),
+      };
+    });
+
     if (soundEnabled) {
       if (donation.amount >= 1000) playSound('record');
       else if (donation.amount >= 500) playSound('large');
@@ -132,7 +181,6 @@ export function Dashboard() {
       </div>,
       { duration: 3000 }
     );
-    loadSessionStats();
   };
 
   const loadStreamStatus = async () => {
@@ -141,6 +189,15 @@ export function Dashboard() {
       setStreamStatus(status);
       setIsStreaming(status.is_live);
       if (status.widget_url) setWidgetUrl(status.widget_url);
+
+      // 🔥 Исправление №3: восстанавливаем ws_url если его нет
+      if (status.is_live && !status.ws_url && status.widget_url) {
+        const token = status.widget_url.split('/').pop();
+        if (token) {
+          const wsUrl = `wss://api.tipbot.qu1nqqy.ru/ws/viewer/${token}`;
+          setStreamStatus(prev => ({ ...prev!, ws_url: wsUrl }));
+        }
+      }
     } catch (error) {
       console.error('Failed to load stream status:', error);
     } finally {
@@ -182,12 +239,13 @@ export function Dashboard() {
       } else {
         const response = await streamApi.start();
         setWidgetUrl(response.widget_url);
+        // 🔥 Исправление №5: ws_url теперь есть в типе
         setStreamStatus({
           is_live: true,
           session_id: response.session_id,
           started_at: response.started_at,
           widget_url: response.widget_url,
-          ws_url: (response as any).ws_url || null,
+          ws_url: response.ws_url || null,
         });
         toast.success('Стрим запущен!');
         setIsStreaming(true);
@@ -227,8 +285,7 @@ export function Dashboard() {
 
   return (
     <div ref={containerRef} className="min-h-screen bg-[#0a0a0f] pb-6">
-      {/* Header */}
-      <motion.div 
+      <motion.div
         className="bg-gradient-to-r from-teal-900 via-emerald-900 to-cyan-900 text-white px-4 sm:px-6 py-5 sm:py-6"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -239,7 +296,6 @@ export function Dashboard() {
       </motion.div>
 
       <div className="px-4 sm:px-6 mt-4 space-y-4">
-        {/* Stream Control — КОМПАКТНЫЙ */}
         <Card className="shadow-lg border-gray-800/50 bg-gray-900/80 backdrop-blur-sm">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -260,7 +316,7 @@ export function Dashboard() {
                   </div>
                 )}
               </div>
-              
+
               <div className="flex items-center gap-1.5">
                 {isStreaming && (
                   <Button
@@ -284,7 +340,6 @@ export function Dashboard() {
               </div>
             </div>
 
-            {/* Widget URL — показывается только когда стрим активен */}
             {widgetUrl && isStreaming && (
               <div className="mt-3 pt-3 border-t border-gray-800/50">
                 <div className="flex gap-1.5">
@@ -306,7 +361,6 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Quick Stats — КОМПАКТНЫЕ */}
         <div className="grid grid-cols-3 gap-3">
           <Card className="bg-gray-900/80 border-gray-800/50">
             <CardContent className="p-3">
@@ -341,12 +395,8 @@ export function Dashboard() {
           </Card>
         </div>
 
-        {/* Chart */}
         {chartData.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <Card className="bg-gray-900/80 border-gray-800/50">
               <CardHeader className="pb-2">
                 <CardTitle className="text-white text-base flex items-center gap-2">
@@ -358,8 +408,8 @@ export function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <LiveChart 
-                  data={chartData} 
+                <LiveChart
+                  data={chartData}
                   flashType={flashType}
                   className="bg-gray-950/50 rounded-lg p-2"
                 />
@@ -368,7 +418,6 @@ export function Dashboard() {
           </motion.div>
         )}
 
-        {/* Recent Donations */}
         {isStreaming && recentDonations.length > 0 && (
           <Card className="bg-gray-900/80 border-gray-800/50">
             <CardHeader className="pb-2">
@@ -406,7 +455,6 @@ export function Dashboard() {
           </Card>
         )}
 
-        {/* Empty state */}
         {!isStreaming && (
           <Card className="bg-gray-900/80 border-gray-800/50">
             <CardContent className="py-8">

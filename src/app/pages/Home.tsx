@@ -273,7 +273,15 @@ export function Home() {
                       >
                         <Button
                           className="w-full h-12 text-base font-medium bg-gradient-to-r from-cyan-600 via-purple-600 to-pink-600 hover:from-cyan-500 hover:via-purple-500 hover:to-pink-500 border-0 shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 transition-all duration-300"
-                          onClick={() => navigate(`/streamer/${streamer.id}`)}
+                          onClick={() => {
+                            const streamerId = streamer.telegram_id || streamer.id;
+                            console.log('[Home] Navigating to streamer:', streamerId, streamer);
+                            if (streamerId) {
+                              navigate(`/streamer/${streamerId}`);
+                            } else {
+                              toast.error('Не удалось открыть профиль стримера');
+                            }
+                          }}
                         >
                           <TrendingUp className="w-4 h-4 mr-2" />
                           Сделать донат

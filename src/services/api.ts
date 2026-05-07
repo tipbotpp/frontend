@@ -1,14 +1,12 @@
 import { http } from './http'
 import type {
   User,
-  StreamerItem,
   StreamerProfile,
   StreamerListResponse,
   StreamerFilters,
   AlertSettings,
   AlertSettingsBody,
   StopWord,
-  StopWordBody,
   PassiveIncomeSettings,
   PassiveIncomeBody,
   BalanceResponse,
@@ -22,7 +20,6 @@ import type {
   StreamStopResponse,
   StreamStatusResponse,
   AuthResponse,
-  UserRoleBody,
   UserUpdateBody,
   GoalBody,
 } from '../app/types'
@@ -57,7 +54,7 @@ export const userApi = {
     if (filters?.limit) params.append('limit', String(filters.limit))
     if (filters?.offset) params.append('offset', String(filters.offset))
     if (filters?.search) params.append('search', filters.search)
-    
+
     const query = params.toString() ? `?${params}` : ''
     return http.get(`/users/streamers${query}`)
   },
@@ -88,7 +85,7 @@ export const donationApi = {
     return http.post('/donations', donation)
   },
 
-  async getHistory(params?: { 
+  async getHistory(params?: {
     limit?: number
     offset?: number
     type?: 'sent' | 'received'
@@ -97,7 +94,7 @@ export const donationApi = {
     if (params?.limit) searchParams.append('limit', String(params.limit))
     if (params?.offset) searchParams.append('offset', String(params.offset))
     if (params?.type) searchParams.append('type', params.type)
-    
+
     const query = searchParams.toString() ? `?${searchParams}` : ''
     return http.get(`/donations/history${query}`)
   },
@@ -158,9 +155,14 @@ export const goalApi = {
  * Stop Words API
  */
 export const stopWordsApi = {
+  // 🔥 Исправление №9: защита от undefined
   async getAll(): Promise<StopWord[]> {
-    const response = await http.get<{ items: StopWord[] }>('/settings/stopwords')
-    return (response as unknown as { items: StopWord[] }).items
+    try {
+      const response = await http.get<{ items: StopWord[] }>('/settings/stopwords')
+      return (response as any)?.items || []
+    } catch {
+      return []
+    }
   },
 
   async add(word: string): Promise<StopWord> {
