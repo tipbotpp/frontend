@@ -1,19 +1,26 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import path from 'path'
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '')
+  loadEnv(mode, process.cwd(), '') // предзагрузка env
   
   return {
     plugins: [
       tailwindcss(),
       react(),
     ],
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src'),
+        '@micro-apps': path.resolve(__dirname, './src/micro-apps'),
+      },
+    },
     server: {
       proxy: {
         '/api': {
-          target: 'https://dev.api.tipbot.qu1nqqy.ru', // 🔥 ЖЁСТКО ПРОПИСАННЫЙ URL (не из env!)
+          target: 'https://dev.api.tipbot.qu1nqqy.ru',
           changeOrigin: true,
           secure: false,
           rewrite: (path) => path.replace(/^\/api/, ''),

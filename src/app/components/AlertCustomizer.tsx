@@ -9,9 +9,8 @@ import { Slider } from './ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Switch } from './ui/switch';
 import { toast } from 'sonner';
-import { alertApi } from '../../services/api';
-import { userApi } from '../../services/api';
-import type { AlertSettings, User } from '../types';
+import { alertApi, userApi } from '@/services/api';
+import type { AlertSettings, User } from '@/app/types';
 
 const FONTS = ['Arial', 'Comic Sans MS', 'Courier New', 'Impact', 'Times New Roman', 'Verdana', 'Georgia', 'Trebuchet MS'];
 const TTS_VOICES = ['default', 'male', 'female', 'robot', 'whisper'];

@@ -387,3 +387,4 @@ export function StreamerPage() {
     </div>
   );
 }
+export default StreamerPage;
