@@ -1,93 +1,97 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { ArrowLeft, Send, AlertCircle, CheckCircle } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { Textarea } from '../components/ui/textarea';
-import { Progress } from '../components/ui/progress';
-import { Badge } from '../components/ui/badge';
-import { Alert, AlertDescription } from '../components/ui/alert';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Button } from '@/app/components/ui/button';
+import { Textarea } from '@/app/components/ui/textarea';
+import { Progress } from '@/app/components/ui/progress';
+import { Badge } from '@/app/components/ui/badge';
+import { Alert, AlertDescription } from '@/app/components/ui/alert';
 import { toast } from 'sonner';
-import { userApi, donationApi, balanceApi, stopWordsApi, alertApi } from '../../services/api';
-import type { StreamerProfile, AlertSettings, StopWord } from '../types';
+import { userApi, donationApi, balanceApi, stopWordsApi, alertApi } from '@/services/api';
+import type { AlertSettings, StopWord } from '@/app/types';
+
 
 const PRESET_AMOUNTS = [10, 50, 100, 500];
 
 export function StreamerPage() {
   const { streamerId } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [amount, setAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState('');
   const [message, setMessage] = useState('');
   const [status, setStatus] = useState<'idle' | 'success' | 'error' | 'toxic'>('idle');
-  const [isLoading, setIsLoading] = useState(true);
-  const [streamer, setStreamer] = useState<StreamerProfile | null>(null);
-  const [balance, setBalance] = useState(0);
-  const [stopWords, setStopWords] = useState<StopWord[]>([]);
-  const [alertSettings, setAlertSettings] = useState<AlertSettings | null>(null);
-  const [isSending, setIsSending] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // 🔥 Безопасное получение ID
   const numericId = streamerId ? Number(streamerId) : NaN;
+  const isValidId = !isNaN(numericId) && numericId > 0;
 
-    useEffect(() => {
-      console.log('[StreamerPage] mounted, streamerId:', streamerId);
-      
-      if (!streamerId) {
-        console.error('[StreamerPage] No streamerId in URL');
-        setIsLoading(false);
-        setErrorMessage('ID стримера не указан');
-        return;
+  // 🔥 React Query: стример
+  const { data: streamer, isLoading: streamerLoading, error: streamerError } = useQuery({
+    queryKey: ['streamer', numericId],
+    queryFn: () => userApi.getUserById(numericId),
+    enabled: isValidId,
+  });
+
+  // 🔥 React Query: баланс
+  const { data: balanceData } = useQuery({
+    queryKey: ['balance'],
+    queryFn: () => balanceApi.get(),
+  });
+
+  // 🔥 React Query: стоп-слова
+  const { data: stopWords = [] } = useQuery({
+    queryKey: ['stopwords'],
+    queryFn: () => stopWordsApi.getAll().catch(() => []),
+  });
+
+  // 🔥 React Query: настройки алерта
+  const { data: alertSettings } = useQuery({
+    queryKey: ['alertSettings'],
+    queryFn: () => alertApi.getSettings().catch(() => null),
+  });
+
+  const balance = balanceData?.balance || 0;
+
+  // 🔥 Мутация отправки доната
+  const donationMutation = useMutation({
+    mutationFn: (data: { streamer_id: number; amount: number; message?: string }) =>
+      donationApi.send(data),
+    onSuccess: async (_, variables) => {
+      // Обновить баланс в кэше
+      const newBalance = await balanceApi.get();
+      queryClient.setQueryData(['balance'], newBalance);
+      setStatus('success');
+      toast.success(`Донат ${variables.amount} coins успешно отправлен!`);
+      setTimeout(() => {
+        setStatus('idle');
+        setAmount(null);
+        setCustomAmount('');
+        setMessage('');
+      }, 3000);
+    },
+    onError: (error: any) => {
+      if (error?.response?.status === 451) {
+        setStatus('toxic');
+        toast.error('Сообщение отклонено модерацией');
+      } else if (error?.response?.status === 400) {
+        setStatus('error');
+        toast.error('Недостаточно средств или стрим не активен');
+      } else {
+        setStatus('error');
+        toast.error(error?.response?.data?.message || 'Ошибка при отправке доната');
       }
-      
-  const id = Number(streamerId);
-  console.log('[StreamerPage] numericId:', id, 'isNaN:', isNaN(id));
-  
-  if (isNaN(id) || id <= 0) {
-    console.error('[StreamerPage] Invalid streamerId:', streamerId);
-    setIsLoading(false);
-    setErrorMessage('Неверный ID стримера');
-    return;
-  }
-  
-  loadData();
-}, [streamerId]);
-  const loadData = async () => {
-    try {
-      setIsLoading(true);
-      setErrorMessage(null);
-
-      const [streamerData, balanceData, stopWordsData, alertData] = await Promise.all([
-        userApi.getUserById(numericId),
-        balanceApi.get(),
-        stopWordsApi.getAll().catch(() => []),
-        alertApi.getSettings().catch(() => null),
-      ]);
-
-      setStreamer(streamerData);
-      setBalance(balanceData.balance);
-      setStopWords(Array.isArray(stopWordsData) ? stopWordsData : []);
-      setAlertSettings(alertData);
-    } catch (error: any) {
-      console.error('Failed to load data:', error);
-      setErrorMessage(
-        error?.response?.status === 404
-          ? 'Стример не найден'
-          : 'Не удалось загрузить данные стримера'
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+  });
 
   const checkStopWords = (text: string): boolean => {
     const lowerText = text.toLowerCase();
-    return (stopWords || []).some((stopWord) =>
+    return (stopWords as StopWord[]).some((stopWord) =>
       lowerText.includes(stopWord.word.toLowerCase())
     );
   };
 
-  const handleSendDonation = async () => {
+  const handleSendDonation = () => {
     const donationAmount = amount || Number(customAmount);
 
     if (donationAmount <= 0) {
@@ -107,75 +111,24 @@ export function StreamerPage() {
       return;
     }
 
-    setIsSending(true);
-    try {
-      await donationApi.send({
-        streamer_id: numericId,
-        amount: donationAmount,
-        message: message || undefined,
-      });
-
-      const newBalance = await balanceApi.get();
-      setBalance(newBalance.balance);
-
-      setStatus('success');
-      toast.success(`Донат ${donationAmount} coins успешно отправлен!`);
-
-      setTimeout(() => {
-        setStatus('idle');
-        setAmount(null);
-        setCustomAmount('');
-        setMessage('');
-      }, 3000);
-    } catch (error: any) {
-      console.error('Failed to send donation:', error);
-
-      // 🔥 Обработка ошибок от API
-      if (error?.response?.data?.message) {
-        toast.error(error.response.data.message);
-      } else if (error?.response?.status === 451) {
-        setStatus('toxic');
-        toast.error('Сообщение отклонено модерацией');
-      } else if (error?.response?.status === 400) {
-        setStatus('error');
-        toast.error('Недостаточно средств или стрим не активен');
-      } else {
-        setStatus('error');
-        toast.error('Ошибка при отправке доната');
-      }
-    } finally {
-      setIsSending(false);
-    }
+    donationMutation.mutate({
+      streamer_id: numericId,
+      amount: donationAmount,
+      message: message || undefined,
+    });
   };
 
   const selectedAmount = amount || Number(customAmount) || 0;
   const characterCount = message.length;
-  const maxCharacters = 200;
+  const isSending = donationMutation.isPending;
 
-  // 🔥 Экран ошибки загрузки
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
-          <p className="text-gray-400">Загрузка...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // 🔥 Экран ошибки
-  if (errorMessage) {
+  // Экран загрузки
+  if (!isValidId) {
     return (
       <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
         <div className="text-center px-6">
           <div className="text-5xl mb-4">😕</div>
-          <p className="text-xl text-gray-400 mb-2">{errorMessage}</p>
-          <p className="text-gray-500 text-sm mb-6">
-            {isNaN(numericId)
-              ? 'Некорректный ID в URL'
-              : 'Возможно, стример не существует или удалён'}
-          </p>
+          <p className="text-xl text-gray-400 mb-2">Некорректный ID стримера</p>
           <Button onClick={() => navigate('/')} className="bg-purple-600 hover:bg-purple-700">
             Вернуться на главную
           </Button>
@@ -184,12 +137,22 @@ export function StreamerPage() {
     );
   }
 
-  // 🔥 Стример не найден (запасной вариант)
-  if (!streamer) {
+  // Загрузка
+  if (streamerLoading) {
     return (
       <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-xl text-gray-400 mb-4">Стример не найден</p>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500" />
+      </div>
+    );
+  }
+
+  // Ошибка
+  if (streamerError || !streamer) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+        <div className="text-center px-6">
+          <div className="text-5xl mb-4">😕</div>
+          <p className="text-xl text-gray-400 mb-2">Стример не найден</p>
           <Button onClick={() => navigate('/')} className="bg-purple-600 hover:bg-purple-700">
             Вернуться на главную
           </Button>
@@ -198,7 +161,7 @@ export function StreamerPage() {
     );
   }
 
-  const previewSettings = alertSettings || {
+  const previewSettings = (alertSettings as AlertSettings) || {
     bg_color: '#6366f1',
     text_color: '#ffffff',
     font: 'Arial',
@@ -312,8 +275,8 @@ export function StreamerPage() {
         <div className="bg-gray-900/80 backdrop-blur-xl border border-gray-800/50 rounded-2xl p-4 sm:p-6">
           <div className="flex items-center justify-between mb-2">
             <h2 className="font-semibold text-white text-sm sm:text-base">Ваше сообщение (необязательно)</h2>
-            <span className={`text-xs sm:text-sm ${characterCount > maxCharacters ? 'text-red-400' : 'text-gray-500'}`}>
-              {characterCount}/{maxCharacters}
+            <span className={`text-xs sm:text-sm ${characterCount > 200 ? 'text-red-400' : 'text-gray-500'}`}>
+              {characterCount}/200
             </span>
           </div>
           <Textarea
@@ -321,7 +284,7 @@ export function StreamerPage() {
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             className="min-h-20 sm:min-h-24 resize-none bg-gray-800 border-gray-700 text-white placeholder-gray-500 focus:ring-purple-500 text-sm"
-            maxLength={maxCharacters}
+            maxLength={200}
             disabled={isSending}
           />
         </div>
@@ -348,7 +311,7 @@ export function StreamerPage() {
           <Alert className="bg-green-500/10 border-green-500/30 backdrop-blur-sm">
             <CheckCircle className="h-4 w-4 text-green-400" />
             <AlertDescription className="text-green-300 text-sm">
-              Донат успешно отправлен! Ожидайте реакцию стримера.
+              Донат успешно отправлен!
             </AlertDescription>
           </Alert>
         )}
@@ -357,7 +320,7 @@ export function StreamerPage() {
           <Alert className="bg-red-500/10 border-red-500/30 backdrop-blur-sm">
             <AlertCircle className="h-4 w-4 text-red-400" />
             <AlertDescription className="text-red-300 text-sm">
-              Ваше сообщение нарушает правила и было отклонено.
+              Сообщение нарушает правила и было отклонено.
             </AlertDescription>
           </Alert>
         )}
@@ -374,7 +337,7 @@ export function StreamerPage() {
         <Button
           className="w-full h-12 sm:h-14 text-base sm:text-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 border-0 shadow-lg shadow-purple-500/20"
           onClick={handleSendDonation}
-          disabled={selectedAmount <= 0 || status !== 'idle' || isSending}
+          disabled={selectedAmount <= 0 || isSending}
         >
           <Send className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
           {isSending ? 'Отправка...' : 'Отправить донат'}
@@ -387,4 +350,3 @@ export function StreamerPage() {
     </div>
   );
 }
-export default StreamerPage;

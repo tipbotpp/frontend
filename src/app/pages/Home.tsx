@@ -1,74 +1,76 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Search, TrendingUp, Zap, Users, Radio, Plus, Sparkles } from 'lucide-react';
+import { Search, TrendingUp, Zap, Radio, Plus, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Progress } from '../components/ui/progress';
-import { Badge } from '../components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Button } from '@/app/components/ui/button';
+import { Input } from '@/app/components/ui/input';
+import { Progress } from '@/app/components/ui/progress';
+import { Badge } from '@/app/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/app/components/ui/dialog';
 import { toast } from 'sonner';
-import { balanceApi, userApi } from '../../services/api';
-import type { StreamerItem, User } from '../types';
+import { balanceApi, userApi } from '@/services/api';
+import type { StreamerItem } from '@/app/types';
 
 export function Home() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [depositDialogOpen, setDepositDialogOpen] = useState(false);
   const [depositAmount, setDepositAmount] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [user, setUser] = useState<User | null>(null);
-  const [streamers, setStreamers] = useState<StreamerItem[]>([]);
-  const [balance, setBalance] = useState(0);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  // 🔥 React Query: пользователь
+  const { data: user, isLoading: userLoading } = useQuery({
+    queryKey: ['user', 'me'],
+    queryFn: () => userApi.getMe(),
+  });
 
-  const loadData = async () => {
-    try {
-      setIsLoading(true);
-      const [userData, balanceData] = await Promise.all([
-        userApi.getMe(),
-        balanceApi.get(),
-      ]);
-      
-      setUser(userData);
-      setBalance(balanceData.balance);
-      
+  // 🔥 React Query: баланс
+  const { data: balanceData, isLoading: balanceLoading } = useQuery({
+    queryKey: ['balance'],
+    queryFn: () => balanceApi.get(),
+  });
+
+  // 🔥 React Query: стримеры
+  const { data: streamers = [], isLoading: streamersLoading } = useQuery({
+    queryKey: ['streamers'],
+    queryFn: async () => {
       try {
-        const streamersData = await userApi.getStreamers({ limit: 50 });
-        setStreamers(streamersData.items);
-      } catch (err) {
-        console.warn('Streamers endpoint not available yet');
-        setStreamers([]);
+        const data = await userApi.getStreamers({ limit: 50 });
+        return data.items;
+      } catch {
+        return [];
       }
-    } catch (error) {
-      console.error('Failed to load data:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+  });
 
-  const filteredStreamers = streamers.filter(streamer =>
-    (streamer.display_name || streamer.username || '').toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const balance = balanceData?.balance || 0;
 
-  const handleDeposit = async (amount: number) => {
-    try {
-      const response = await balanceApi.topup(amount);
-      setBalance(response.new_balance);
+  // 🔥 Мутация пополнения
+  const depositMutation = useMutation({
+    mutationFn: (amount: number) => balanceApi.topup(amount),
+    onSuccess: (response) => {
+      queryClient.setQueryData(['balance'], { balance: response.new_balance, currency: 'coins' });
       toast.success(
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-yellow-400" />
-          <span>Баланс пополнен на {amount} coins!</span>
+          <span>Баланс пополнен на {response.added_amount} coins!</span>
         </div>
       );
       setDepositDialogOpen(false);
       setDepositAmount('');
-    } catch (error: any) {
+    },
+    onError: (error: any) => {
       toast.error(error?.message || 'Ошибка при пополнении баланса');
-    }
+    },
+  });
+
+  const filteredStreamers = (streamers as StreamerItem[]).filter(streamer =>
+    (streamer.display_name || streamer.username || '').toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleDeposit = (amount: number) => {
+    depositMutation.mutate(amount);
   };
 
   const handleCustomDeposit = () => {
@@ -77,6 +79,8 @@ export function Home() {
       handleDeposit(amount);
     }
   };
+
+  const isLoading = userLoading || balanceLoading || streamersLoading;
 
   if (isLoading) {
     return (
@@ -110,7 +114,6 @@ export function Home() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          {/* Декоративные линии */}
           <div className="absolute inset-0 opacity-10">
             <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
             <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-purple-400 to-transparent" />
@@ -168,7 +171,7 @@ export function Home() {
               </div>
             </motion.div>
           </div>
-        </motion.div> {/* 🔥 ЗАКРЫВАЮЩИЙ ТЕГ ДОБАВЛЕН ЗДЕСЬ */}
+        </motion.div>
 
         {/* Search */}
         <div className="px-6 -mt-5 mb-6 relative z-20">
@@ -243,9 +246,6 @@ export function Home() {
                             <h3 className="font-semibold text-white truncate">
                               {streamer.display_name || streamer.username || 'Аноним'}
                             </h3>
-                            {streamer.is_live && (
-                              <Users className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                            )}
                           </div>
                           <p className="text-sm text-gray-400 truncate mb-3">Стример</p>
                           
@@ -275,7 +275,6 @@ export function Home() {
                           className="w-full h-12 text-base font-medium bg-gradient-to-r from-cyan-600 via-purple-600 to-pink-600 hover:from-cyan-500 hover:via-purple-500 hover:to-pink-500 border-0 shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 transition-all duration-300"
                           onClick={() => {
                             const streamerId = streamer.telegram_id || streamer.id;
-                            console.log('[Home] Navigating to streamer:', streamerId, streamer);
                             if (streamerId) {
                               navigate(`/streamer/${streamerId}`);
                             } else {
@@ -338,6 +337,7 @@ export function Home() {
                   <motion.button
                     key={amount}
                     onClick={() => handleDeposit(amount)}
+                    disabled={depositMutation.isPending}
                     className="h-20 rounded-xl bg-gray-800/50 border border-gray-700/50 hover:border-cyan-500/50 hover:bg-gray-800 transition-all duration-300 group"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -364,10 +364,10 @@ export function Home() {
                   />
                   <Button
                     onClick={handleCustomDeposit}
-                    disabled={!depositAmount || Number(depositAmount) <= 0}
+                    disabled={!depositAmount || Number(depositAmount) <= 0 || depositMutation.isPending}
                     className="h-12 px-6 bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 border-0"
                   >
-                    Пополнить
+                    {depositMutation.isPending ? '...' : 'Пополнить'}
                   </Button>
                 </div>
               </div>
@@ -378,4 +378,3 @@ export function Home() {
     </div>
   );
 }
-export default Home;
