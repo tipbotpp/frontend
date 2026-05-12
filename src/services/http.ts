@@ -1,4 +1,4 @@
-import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosError } from 'axios'
+// src/services/http.ts
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://dev.api.tipbot.qu1nqqy.ru'
 export const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL || window.location.origin
@@ -10,18 +10,6 @@ if (ENVIRONMENT === 'development') {
   console.log(`[HTTP] Frontend URL: ${FRONTEND_URL}`)
 }
 
-// Создаем экземпляр axios с включенной передачей кук
-export const http: AxiosInstance = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-    'X-App-Origin': FRONTEND_URL,
-    'X-Environment': ENVIRONMENT,
-  },
-  timeout: 10000,
-  withCredentials: true, // 🔥 КРИТИЧНО: включаем передачу кук
-})
-
 // Определяем режим работы
 export const isLocalMode = () => {
   const tgInitData = window.Telegram?.WebApp?.initData
@@ -31,73 +19,134 @@ export const isLocalMode = () => {
 // Mock token для локальной разработки
 export const MOCK_TOKEN = import.meta.env.VITE_MOCK_TOKEN || 'mock_token_q9830md893sn9msdmafo'
 
-// Request interceptor - больше НЕ добавляем Authorization заголовок
-// Куки будут отправляться автоматически браузером
-http.interceptors.request.use(
-  (config) => {
-    // При куках токен в заголовке не нужен
-    // Браузер сам отправит куки
-    return config
-  },
-  (error: AxiosError) => Promise.reject(error)
-)
-
-// Response interceptor - обрабатываем ошибки
-http.interceptors.response.use(
-  (response) => response.data,
-  async (error: AxiosError) => {
-    const status = error.response?.status
-    const data = error.response?.data as { message?: string } | undefined
-    const message = data?.message ?? 'Произошла ошибка'
-
-    if (ENVIRONMENT === 'development') {
-      console.error(`[API Error ${status}]`, message)
+// Типы для ответа с ошибкой
+interface ApiError {
+  response: {
+    status: number
+    data: {
+      message?: string
     }
-
-    // При 401 просто логируем, редирект должен быть на уровне приложения
-    if (status === 401) {
-      console.warn('Unauthorized: session expired or not authenticated')
-      // Не трогаем localStorage, куки управляются сервером
-    }
-    if (status === 403) {
-      console.warn('Forbidden: insufficient permissions')
-    }
-    if (status === 404) {
-      console.warn('Not Found:', error.config?.url)
-    }
-    if (status === 429) {
-      console.warn('Too Many Requests: rate limit exceeded')
-    }
-    if (status && status >= 500) {
-      console.error('Server Error:', status)
-    }
-
-    return Promise.reject(error)
   }
-)
-
-// Вспомогательные функции
-export const apiRequest = async <T = any>(
-  config: AxiosRequestConfig = {}
-): Promise<T> => {
-  return http.request<T>(config) as Promise<T>
+  message: string
+  config?: {
+    url?: string
+  }
 }
 
-export const get = <T = any>(url: string, config?: AxiosRequestConfig): Promise<T> => {
-  return apiRequest<T>({ ...config, url, method: 'GET' })
+// Базовая функция запроса
+async function baseRequest<T = any>(
+  url: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url}`
+
+  const response = await fetch(fullUrl, {
+    ...options,
+    credentials: 'include', // Куки
+    headers: {
+      'Content-Type': 'application/json',
+      'X-App-Origin': FRONTEND_URL,
+      'X-Environment': ENVIRONMENT,
+      ...options.headers,
+    },
+  })
+
+  // Успешный ответ — возвращаем данные
+  if (response.ok) {
+    // Если ответ пустой (204 No Content)
+    const contentType = response.headers.get('content-type')
+    if (contentType?.includes('application/json')) {
+      return response.json()
+    }
+    return undefined as T
+  }
+
+  // Ошибка — формируем ApiError совместимый с axios
+  let data: { message?: string } = {}
+  try {
+    data = await response.json()
+  } catch {
+    // Ответ не JSON
+  }
+
+  const message = data?.message ?? `HTTP ${response.status}`
+
+  if (ENVIRONMENT === 'development') {
+    console.error(`[API Error ${response.status}]`, message)
+  }
+
+  if (response.status === 401) {
+    console.warn('Unauthorized: session expired or not authenticated')
+  }
+  if (response.status === 403) {
+    console.warn('Forbidden: insufficient permissions')
+  }
+  if (response.status === 404) {
+    console.warn('Not Found:', url)
+  }
+  if (response.status === 429) {
+    console.warn('Too Many Requests: rate limit exceeded')
+  }
+  if (response.status >= 500) {
+    console.error('Server Error:', response.status)
+  }
+
+  const error = new Error(message) as Error & ApiError
+  error.response = {
+    status: response.status,
+    data,
+  }
+  error.config = { url }
+  error.message = message
+
+  throw error
 }
 
-export const post = <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
-  return apiRequest<T>({ ...config, url, method: 'POST', data })
+// Публичное API — полная совместимость с axios (response.data из коробки)
+export const http = {
+  get: <T = any>(url: string) => baseRequest<T>(url),
+
+  post: <T = any>(url: string, data?: any) =>
+    baseRequest<T>(url, {
+      method: 'POST',
+      body: data ? JSON.stringify(data) : undefined,
+    }),
+
+  patch: <T = any>(url: string, data?: any) =>
+    baseRequest<T>(url, {
+      method: 'PATCH',
+      body: data ? JSON.stringify(data) : undefined,
+    }),
+
+  put: <T = any>(url: string, data?: any) =>
+    baseRequest<T>(url, {
+      method: 'PUT',
+      body: data ? JSON.stringify(data) : undefined,
+    }),
+
+  delete: <T = any>(url: string) =>
+    baseRequest<T>(url, { method: 'DELETE' }),
+
+  request: async <T = any>(config: {
+    url: string
+    method?: string
+    data?: any
+    headers?: Record<string, string>
+  }): Promise<T> => {
+    return baseRequest<T>(config.url, {
+      method: config.method || 'GET',
+      body: config.data ? JSON.stringify(config.data) : undefined,
+      headers: config.headers,
+    })
+  },
 }
 
-export const put = <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
-  return apiRequest<T>({ ...config, url, method: 'PUT', data })
-}
-
-export const del = <T = any>(url: string, config?: AxiosRequestConfig): Promise<T> => {
-  return apiRequest<T>({ ...config, url, method: 'DELETE' })
-}
+// Вспомогательные функции (обратная совместимость)
+export const apiRequest = http.request
+export const get = http.get
+export const post = http.post
+export const put = http.put
+export const del = http.delete
 
 export const isDev = () => ENVIRONMENT === 'development'
 export const isProd = () => ENVIRONMENT === 'production'
