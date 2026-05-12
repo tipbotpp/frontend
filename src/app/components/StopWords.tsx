@@ -7,8 +7,8 @@ import { Input } from './ui/input';
 import { Alert, AlertDescription } from './ui/alert';
 import { Badge } from './ui/badge';
 import { toast } from 'sonner';
-import { stopWordsApi } from '../../services/api';
-import type { StopWord } from '../types';
+import { stopWordsApi } from '@/services/api';
+import type { StopWord } from '@/app/types';
 
 export function StopWords() {
   const [stopWords, setStopWords] = useState<StopWord[]>([]);

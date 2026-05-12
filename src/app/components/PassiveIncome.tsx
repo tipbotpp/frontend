@@ -9,8 +9,8 @@ import { Button } from './ui/button';
 import { Alert, AlertDescription } from './ui/alert';
 import { Slider } from './ui/slider';
 import { toast } from 'sonner';
-import { passiveIncomeApi } from '../../services/api';
-import type { PassiveIncomeSettings } from '../types';
+import { passiveIncomeApi } from '@/services/api';
+import type { PassiveIncomeSettings } from '@/app/types';
 
 export function PassiveIncome() {
   const [isLoading, setIsLoading] = useState(true);

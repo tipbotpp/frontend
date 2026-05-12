@@ -1,45 +1,40 @@
-import { useState, useEffect } from 'react';
 import { User, ArrowUpRight, TrendingUp, Wallet } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Badge } from '../components/ui/badge';
-import { userApi, balanceApi, donationApi } from '../../services/api';
-import type { User as UserType, DonationHistoryItem } from '../types';
+import { useQuery } from '@tanstack/react-query';
+import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
+import { Badge } from '@/app/components/ui/badge';
+import { userApi, balanceApi, donationApi } from '@/services/api';
+import type { DonationHistoryItem } from '@/app/types';
 
 export function Profile() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [user, setUser] = useState<UserType | null>(null);
-  const [balance, setBalance] = useState(0);
-  const [donations, setDonations] = useState<DonationHistoryItem[]>([]);
+  // 🔥 React Query: пользователь
+  const { data: user, isLoading: userLoading } = useQuery({
+    queryKey: ['user', 'me'],
+    queryFn: () => userApi.getMe(),
+  });
 
-  useEffect(() => {
-    loadProfile();
-  }, []);
+  // 🔥 React Query: баланс
+  const { data: balanceData, isLoading: balanceLoading } = useQuery({
+    queryKey: ['balance'],
+    queryFn: () => balanceApi.get(),
+  });
 
-  const loadProfile = async () => {
-    try {
-      setIsLoading(true);
-      const [userData, balanceData] = await Promise.all([
-        userApi.getMe(),
-        balanceApi.get(),
-      ]);
-
-      setUser(userData);
-      setBalance(balanceData.balance);
-
+  // 🔥 React Query: история донатов
+  const { data: donations = [], isLoading: donationsLoading } = useQuery({
+    queryKey: ['donations', 'history'],
+    queryFn: async () => {
       try {
-        const donationsData = await donationApi.getHistory({ limit: 50 });
-        setDonations(donationsData.items || []);
+        const data = await donationApi.getHistory({ limit: 50 });
+        return data.items || [];
       } catch {
-        setDonations([]);
+        return [];
       }
-    } catch (error) {
-      console.error('Failed to load profile:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+  });
+
+  const balance = balanceData?.balance || 0;
+  const isLoading = userLoading || balanceLoading || donationsLoading;
 
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('ru-RU', {
@@ -65,31 +60,24 @@ export function Profile() {
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'delivered':
-        return 'Доставлен';
-      case 'rejected':
-        return 'Отклонён';
-      case 'processing':
-        return 'Обработка';
-      default:
-        return status;
+      case 'delivered': return 'Доставлен';
+      case 'rejected': return 'Отклонён';
+      case 'processing': return 'Обработка';
+      default: return status;
     }
   };
 
-  const totalDonations = donations.reduce((sum, d) => sum + d.amount, 0);
+  const totalDonations = donations.reduce((sum: number, d: DonationHistoryItem) => sum + d.amount, 0);
   const donationCount = donations.length;
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#0a0a0f] via-[#0f0f1a] to-[#0a0a0f] flex items-center justify-center">
-        <div className="text-center">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-            className="w-16 h-16 mx-auto mb-4 rounded-full border-2 border-transparent border-t-indigo-400 border-r-purple-500"
-          />
-          <p className="text-gray-400 text-sm">Загрузка профиля...</p>
-        </div>
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+          className="w-16 h-16 rounded-full border-2 border-transparent border-t-indigo-400 border-r-purple-500"
+        />
       </div>
     );
   }
@@ -104,7 +92,6 @@ export function Profile() {
           className="relative overflow-hidden bg-[#0f0f1a]/80 backdrop-blur-xl border-b border-gray-800/50"
         >
           <div className="px-4 sm:px-6 pt-6 sm:pt-8 pb-6 relative">
-            {/* User Info */}
             <div className="flex items-center gap-3 sm:gap-4 mb-5">
               <motion.div
                 initial={{ scale: 0 }}
@@ -115,9 +102,7 @@ export function Profile() {
                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xl sm:text-2xl font-bold text-white ring-2 ring-indigo-500/30 shadow-lg shadow-indigo-500/20">
                   {(user?.display_name?.[0] || user?.username?.[0] || '?').toUpperCase()}
                 </div>
-                <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-green-500 border-2 border-[#0f0f1a] flex items-center justify-center">
-                  <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-                </div>
+                <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-green-500 border-2 border-[#0f0f1a]" />
               </motion.div>
 
               <div className="flex-1 min-w-0">
@@ -136,7 +121,6 @@ export function Profile() {
               </div>
             </div>
 
-            {/* Balance Card */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -165,9 +149,7 @@ export function Profile() {
         {/* Tabs */}
         <div className="px-4 sm:px-6 -mt-2 relative z-10">
           <Tabs defaultValue="donations" className="space-y-0">
-            {/* Общая обёртка с единым бордером */}
             <div className="bg-gray-900/60 backdrop-blur-xl border border-gray-800/50 rounded-2xl overflow-hidden shadow-lg">
-              {/* Кнопки табов */}
               <TabsList className="grid w-full grid-cols-2 bg-transparent border-b border-gray-800/50 p-1.5 rounded-none">
                 <TabsTrigger
                   value="donations"
@@ -196,9 +178,7 @@ export function Profile() {
                 </TabsTrigger>
               </TabsList>
 
-              {/* Контент */}
               <div className="p-4">
-                {/* Donations Tab */}
                 <TabsContent value="donations" className="space-y-3 mt-0">
                   <AnimatePresence mode="wait">
                     {donations.length === 0 ? (
@@ -206,23 +186,17 @@ export function Profile() {
                         key="empty"
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0 }}
                         className="text-center py-10"
                       >
                         <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-gray-800/50 flex items-center justify-center">
                           <ArrowUpRight className="w-7 h-7 text-gray-600" />
                         </div>
-                        <p className="text-gray-400 text-sm font-medium">Донатов пока нет</p>
+                        <p className="text-gray-400 text-sm">Донатов пока нет</p>
                         <p className="text-gray-600 text-xs mt-1">Отправьте первый донат стримеру</p>
                       </motion.div>
                     ) : (
-                      <motion.div
-                        key="list"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="space-y-2"
-                      >
-                        {donations.map((donation, index) => (
+                      <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
+                        {donations.map((donation: DonationHistoryItem, index: number) => (
                           <motion.div
                             key={donation.id}
                             initial={{ opacity: 0, x: -20 }}
@@ -234,7 +208,7 @@ export function Profile() {
                                 <div className="flex items-start justify-between gap-2 mb-1.5">
                                   <div className="flex-1 min-w-0">
                                     <p className="font-medium text-white text-sm truncate">
-                                      {donation.to_streamer.username || 'Стример'}
+                                      {donation.to_streamer?.username || 'Стример'}
                                     </p>
                                     <p className="text-xs text-gray-500 mt-0.5">{formatDate(donation.created_at)}</p>
                                   </div>
@@ -261,13 +235,8 @@ export function Profile() {
                   </AnimatePresence>
                 </TabsContent>
 
-                {/* Stats Tab */}
                 <TabsContent value="stats" className="space-y-3 mt-0">
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="grid grid-cols-1 sm:grid-cols-2 gap-3"
-                  >
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Card className="bg-gray-800/40 backdrop-blur-sm border-gray-700/30 relative overflow-hidden">
                       <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-transparent" />
                       <CardContent className="p-4 sm:p-5 relative">

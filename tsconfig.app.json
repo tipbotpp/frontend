@@ -16,11 +16,16 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
+    /* Path aliases — новый синтаксис TS 5.9+ */
+    "paths": {
+      "@/*": ["./src/*"],
+      "@micro-apps/*": ["./src/micro-apps/*"]
+    },
+
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    //"erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },

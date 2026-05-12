@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router';
 import { Home, User, Settings, TrendingUp } from 'lucide-react';
 import { motion } from 'motion/react';
-import { userApi } from '../../services/api';
-import type { User as UserType } from '../types';
+import { userApi } from '@/services/api';
+import type { User as UserType } from '@/app/types';
 
 export function Layout() {
   const location = useLocation();
