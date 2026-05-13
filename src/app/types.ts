@@ -228,6 +228,7 @@ export interface StreamStatusResponse {
   session_id: number | null;
   started_at: string | null;
   widget_url: string | null;
+  ws_url: string | null;
 }
 
 // ========== Transaction (Legacy) ==========
@@ -251,14 +252,6 @@ export type StreamerSession = {
   startTime: Date
   endTime?: Date
   totalEarned: number
-}
-
-export interface StreamStatusResponse {
-  is_live: boolean;
-  session_id: number | null;
-  started_at: string | null;
-  widget_url: string | null;
-  ws_url: string | null;  
 }
 
 export interface UserUpdateBody {

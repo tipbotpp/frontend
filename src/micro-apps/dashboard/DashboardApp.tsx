@@ -86,7 +86,7 @@ export function DashboardApp({ onStreamToggle }: DashboardProps) {
           session_id: response.session_id,
           started_at: response.started_at,
           widget_url: response.widget_url,
-          ws_url: null,
+          ws_url: response.ws_url,
         });
         toast.success('Стрим запущен!');
         setIsStreaming(true);

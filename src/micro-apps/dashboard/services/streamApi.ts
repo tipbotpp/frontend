@@ -2,12 +2,13 @@ import { http } from '@/services/http';
 import type { SessionStats, StreamStartResponse, StreamStopResponse, StreamStatusResponse } from '@/app/types';
 
 export const streamApi = {
+
   async start(): Promise<StreamStartResponse> {
-    return http.post('/stream/start');
+    return http.post('/stream/start', {}); 
   },
   
   async stop(): Promise<StreamStopResponse> {
-    return http.post('/stream/stop');
+    return http.post('/stream/stop', {});
   },
   
   async getStatus(): Promise<StreamStatusResponse> {
