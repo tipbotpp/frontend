@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Play, Loader2, Palette, Type, Clock, Eye, Sparkles, Volume2, Image } from 'lucide-react';
+import { Play, Loader2, Palette, Type, Clock, Eye, Sparkles, Volume2, Image, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { Button } from './ui/button';
@@ -15,17 +15,18 @@ import type { AlertSettings, User } from '@/app/types';
 const FONTS = ['Arial', 'Comic Sans MS', 'Courier New', 'Impact', 'Times New Roman', 'Verdana', 'Georgia', 'Trebuchet MS'];
 const TTS_VOICES = ['default', 'male', 'female', 'robot', 'whisper'];
 const PRESET_THEMES = [
-  { name: 'Классика', bg: '#6366f1', text: '#ffffff', font: 'Arial' },
-  { name: 'Киберпанк', bg: '#0a0a0f', text: '#00ffff', font: 'Courier New' },
-  { name: 'Неон', bg: '#1a0033', text: '#ff00ff', font: 'Impact' },
-  { name: 'Минимализм', bg: '#ffffff', text: '#000000', font: 'Georgia' },
-  { name: 'Закат', bg: '#ff6b35', text: '#ffffff', font: 'Verdana' },
+  { name: 'Классика', bg: '#6366f1', text: '#ffffff', font: 'Arial', gradient: 'from-indigo-500 to-purple-500' },
+  { name: 'Киберпанк', bg: '#0a0a0f', text: '#00ffff', font: 'Courier New', gradient: 'from-cyan-600 to-blue-600' },
+  { name: 'Неон', bg: '#1a0033', text: '#ff00ff', font: 'Impact', gradient: 'from-pink-600 to-purple-600' },
+  { name: 'Минимализм', bg: '#ffffff', text: '#000000', font: 'Georgia', gradient: 'from-gray-100 to-gray-300' },
+  { name: 'Закат', bg: '#ff6b35', text: '#ffffff', font: 'Verdana', gradient: 'from-orange-500 to-red-500' },
 ];
 
 export function AlertCustomizer() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [activePreset, setActivePreset] = useState<string | null>(null);
   const [settings, setSettings] = useState<AlertSettings>({
     bg_color: '#6366f1',
     text_color: '#ffffff',
@@ -61,7 +62,6 @@ export function AlertCustomizer() {
     }
   };
 
-  // 🔥 Исправление №8: отправка тестового алерта в OBS
   const handleTestAlert = async () => {
     setShowPreview(true);
 
@@ -110,7 +110,10 @@ export function AlertCustomizer() {
       text_color: preset.text,
       font: preset.font,
     });
+    setActivePreset(preset.name);
     toast.success(`Тема "${preset.name}" применена`);
+    
+    setTimeout(() => setActivePreset(null), 2000);
   };
 
   if (isLoading) {
@@ -169,17 +172,33 @@ export function AlertCustomizer() {
                 <motion.button
                   key={preset.name}
                   onClick={() => applyPreset(preset)}
-                  className="p-3 rounded-xl border border-gray-700/50 hover:border-purple-500/50 transition-all duration-300 group"
+                  className={`relative p-3 rounded-xl border transition-all duration-300 group ${
+                    activePreset === preset.name
+                      ? 'border-purple-500 shadow-lg shadow-purple-500/30 scale-105'
+                      : 'border-gray-700/50 hover:border-purple-500/50'
+                  }`}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
+                  {activePreset === preset.name && (
+                    <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center z-10">
+                      <Check className="w-3 h-3 text-white" />
+                    </div>
+                  )}
+                  
                   <div
-                    className="w-full h-16 rounded-lg mb-2 flex items-center justify-center text-xs font-bold"
-                    style={{ backgroundColor: preset.bg, color: preset.text }}
+                    className={`w-full h-16 rounded-lg mb-2 flex items-center justify-center text-xs font-bold bg-gradient-to-r ${preset.gradient}`}
+                    style={{ 
+                      backgroundColor: preset.bg, 
+                      color: preset.text,
+                      backgroundImage: preset.name !== 'Минимализм' ? undefined : 'none'
+                    }}
                   >
                     Alert
                   </div>
-                  <p className="text-white text-sm text-center group-hover:text-purple-400 transition-colors">
+                  <p className={`text-sm text-center transition-colors ${
+                    activePreset === preset.name ? 'text-purple-400 font-semibold' : 'text-white group-hover:text-purple-400'
+                  }`}>
                     {preset.name}
                   </p>
                 </motion.button>
@@ -198,14 +217,16 @@ export function AlertCustomizer() {
         <Card className="bg-gray-900/60 backdrop-blur-xl border-gray-800/50">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
-              <Palette className="w-5 h-5 text-purple-400" />
+              <div className="w-5 h-5 rounded-full bg-gradient-to-r from-purple-400 to-pink-400 flex items-center justify-center">
+                <Palette className="w-3 h-3 text-white" />
+              </div>
               Цвета
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-3">
               <Label className="text-gray-300 flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: settings.bg_color }} />
+                <div className="w-4 h-4 rounded-full bg-gradient-to-r from-purple-500 to-pink-500" />
                 Цвет фона
               </Label>
               <div className="flex gap-3">
@@ -219,7 +240,7 @@ export function AlertCustomizer() {
                   type="text"
                   value={settings.bg_color}
                   onChange={(e) => setSettings({ ...settings, bg_color: e.target.value })}
-                  className="flex-1 h-16 text-lg font-mono bg-gray-800 border-gray-700 text-white"
+                  className="flex-1 h-16 text-lg font-mono bg-black border-gray-700 text-black placeholder-gray-500"
                   placeholder="#000000"
                 />
               </div>
@@ -227,7 +248,7 @@ export function AlertCustomizer() {
 
             <div className="space-y-3">
               <Label className="text-gray-300 flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: settings.text_color }} />
+                <div className="w-4 h-4 rounded-full bg-gradient-to-r from-cyan-400 to-blue-400" />
                 Цвет текста
               </Label>
               <div className="flex gap-3">
@@ -241,7 +262,7 @@ export function AlertCustomizer() {
                   type="text"
                   value={settings.text_color}
                   onChange={(e) => setSettings({ ...settings, text_color: e.target.value })}
-                  className="flex-1 h-16 text-lg font-mono bg-gray-800 border-gray-700 text-white"
+                  className="flex-1 h-16 text-lg font-mono bg-black border-gray-700 text-black placeholder-gray-500"
                   placeholder="#ffffff"
                 />
               </div>
@@ -249,8 +270,7 @@ export function AlertCustomizer() {
           </CardContent>
         </Card>
       </motion.div>
-
-      {/* Font & Duration */}
+      {/* Font & Duration - FIXED SLIDER */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -259,7 +279,9 @@ export function AlertCustomizer() {
         <Card className="bg-gray-900/60 backdrop-blur-xl border-gray-800/50">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
-              <Type className="w-5 h-5 text-cyan-400" />
+              <div className="w-5 h-5 rounded-full bg-gradient-to-r from-cyan-400 to-teal-400 flex items-center justify-center">
+                <Type className="w-3 h-3 text-white" />
+              </div>
               Шрифт и время
             </CardTitle>
           </CardHeader>
@@ -267,12 +289,17 @@ export function AlertCustomizer() {
             <div className="space-y-3">
               <Label className="text-gray-300">Шрифт</Label>
               <Select value={settings.font} onValueChange={(value) => setSettings({ ...settings, font: value })}>
-                <SelectTrigger className="h-12 bg-gray-800 border-gray-700 text-white">
+                <SelectTrigger className="h-12 bg-black border-gray-700 text-black hover:border-purple-500/50 transition-colors">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-700">
+                <SelectContent className="bg-white border-gray-200 shadow-lg">
                   {FONTS.map((f) => (
-                    <SelectItem key={f} value={f} style={{ fontFamily: f }} className="text-white hover:bg-gray-700">
+                    <SelectItem 
+                      key={f} 
+                      value={f} 
+                      style={{ fontFamily: f }} 
+                      className="text-black hover:bg-gray-100 focus:bg-gray-100 cursor-pointer"
+                    >
                       {f}
                     </SelectItem>
                   ))}
@@ -283,30 +310,38 @@ export function AlertCustomizer() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label className="text-gray-300 flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-cyan-400" />
+                  <div className="w-4 h-4 rounded-full bg-gradient-to-r from-amber-400 to-orange-400 flex items-center justify-center">
+                    <Clock className="w-3 h-3 text-white" />
+                  </div>
                   Длительность показа
                 </Label>
-                <span className="text-cyan-400 font-bold text-lg">{settings.duration_sec} сек</span>
+                <span className="text-cyan-400 font-bold text-lg bg-cyan-500/10 px-3 py-1 rounded-full">{settings.duration_sec} сек</span>
               </div>
-              <Slider
-                value={[settings.duration_sec]}
-                onValueChange={([value]) => setSettings({ ...settings, duration_sec: value })}
-                min={3}
-                max={15}
-                step={1}
-                disabled={isSaving}
-                className="[&>span]:bg-gradient-to-r [&>span]:from-cyan-500 [&>span]:to-purple-600"
-              />
-              <div className="flex justify-between text-xs text-gray-500">
-                <span>3 сек</span>
-                <span>15 сек</span>
+              
+              {/* Fixed Slider with no offset */}
+              <div className="relative pt-2">
+                <Slider
+                  value={[settings.duration_sec]}
+                  onValueChange={([value]) => setSettings({ ...settings, duration_sec: value })}
+                  min={3}
+                  max={15}
+                  step={1}
+                  disabled={isSaving}
+                  className="w-full"
+                />
+              </div>
+              
+              {/* Labels for min and max values */}
+              <div className="flex justify-between text-xs text-gray-500 px-1">
+                <span className="bg-gray-800/50 px-2 py-1 rounded">3 сек</span>
+                <span className="bg-gray-800/50 px-2 py-1 rounded">15 сек</span>
               </div>
             </div>
           </CardContent>
         </Card>
       </motion.div>
 
-      {/* TTS & Image Settings */}
+      {/* TTS & Image Settings - Fixed dropdown with black text */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -315,14 +350,18 @@ export function AlertCustomizer() {
         <Card className="bg-gray-900/60 backdrop-blur-xl border-gray-800/50">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
-              <Volume2 className="w-5 h-5 text-yellow-400" />
+              <div className="w-5 h-5 rounded-full bg-gradient-to-r from-yellow-400 to-orange-400 flex items-center justify-center">
+                <Volume2 className="w-3 h-3 text-white" />
+              </div>
               Дополнительно
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="flex items-center justify-between p-4 bg-gray-800/30 rounded-xl">
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-800/50 to-gray-800/30 rounded-xl border border-gray-700/30">
               <div className="flex items-center gap-3">
-                <Volume2 className="w-5 h-5 text-yellow-400" />
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-yellow-500/20 to-orange-500/20 flex items-center justify-center">
+                  <Volume2 className="w-5 h-5 text-yellow-400" />
+                </div>
                 <div>
                   <p className="text-white font-medium">Озвучка (TTS)</p>
                   <p className="text-sm text-gray-400">Робот зачитает сообщение вслух</p>
@@ -341,28 +380,33 @@ export function AlertCustomizer() {
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="space-y-3"
+                  className="space-y-3 pl-14"
                 >
                   <Label className="text-gray-300">Голос озвучки</Label>
                   <Select
                     value={settings.tts_voice}
                     onValueChange={(value) => setSettings({ ...settings, tts_voice: value })}
                   >
-                    <SelectTrigger className="h-12 bg-gray-800 border-gray-700 text-white">
+                    <SelectTrigger className="h-12 bg-gray-800 border-gray-700 text-white hover:border-yellow-500/50 transition-colors focus:ring-2 focus:ring-yellow-500/50">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-700">
+                    <SelectContent className="bg-white border-gray-200 shadow-lg">
                       {TTS_VOICES.map((voice) => (
-                        <SelectItem key={voice} value={voice} className="text-white hover:bg-gray-700 capitalize">
-                          {voice === 'default'
-                            ? 'Стандартный'
-                            : voice === 'male'
-                              ? 'Мужской'
-                              : voice === 'female'
-                                ? 'Женский'
-                                : voice === 'robot'
-                                  ? 'Робот'
-                                  : 'Шёпот'}
+                        <SelectItem 
+                          key={voice} 
+                          value={voice} 
+                          className="text-black hover:bg-gray-100 focus:bg-gray-100 cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2">
+                            {voice === 'default' && <Volume2 className="w-3 h-3 text-gray-600" />}
+                            {voice === 'male' && <span className="text-blue-500">👨</span>}
+                            {voice === 'female' && <span className="text-pink-500">👩</span>}
+                            {voice === 'robot' && <span className="text-cyan-500">🤖</span>}
+                            {voice === 'whisper' && <span className="text-purple-500">🤫</span>}
+                            <span className="capitalize text-black">
+                              {voice === 'default' ? 'Стандартный' : voice === 'male' ? 'Мужской' : voice === 'female' ? 'Женский' : voice === 'robot' ? 'Робот' : 'Шёпот'}
+                            </span>
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -371,9 +415,11 @@ export function AlertCustomizer() {
               )}
             </AnimatePresence>
 
-            <div className="flex items-center justify-between p-4 bg-gray-800/30 rounded-xl">
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-800/50 to-gray-800/30 rounded-xl border border-gray-700/30">
               <div className="flex items-center gap-3">
-                <Image className="w-5 h-5 text-pink-400" />
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-pink-500/20 to-purple-500/20 flex items-center justify-center">
+                  <Image className="w-5 h-5 text-pink-400" />
+                </div>
                 <div>
                   <p className="text-white font-medium">Картинка донатера</p>
                   <p className="text-sm text-gray-400">Показывать аватар отправителя</p>
@@ -398,7 +444,9 @@ export function AlertCustomizer() {
         <Card className="bg-gray-900/60 backdrop-blur-xl border-gray-800/50 overflow-hidden">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
-              <Eye className="w-5 h-5 text-green-400" />
+              <div className="w-5 h-5 rounded-full bg-gradient-to-r from-green-400 to-emerald-400 flex items-center justify-center">
+                <Eye className="w-3 h-3 text-white" />
+              </div>
               Предпросмотр
             </CardTitle>
             <CardDescription className="text-gray-400">
