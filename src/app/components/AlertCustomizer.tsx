@@ -240,7 +240,7 @@ export function AlertCustomizer() {
                   type="text"
                   value={settings.bg_color}
                   onChange={(e) => setSettings({ ...settings, bg_color: e.target.value })}
-                  className="flex-1 h-16 text-lg font-mono bg-gray-800 border-gray-700 text-white"
+                  className="flex-1 h-16 text-lg font-mono bg-black border-gray-700 text-black placeholder-gray-500"
                   placeholder="#000000"
                 />
               </div>
@@ -262,7 +262,7 @@ export function AlertCustomizer() {
                   type="text"
                   value={settings.text_color}
                   onChange={(e) => setSettings({ ...settings, text_color: e.target.value })}
-                  className="flex-1 h-16 text-lg font-mono bg-gray-800 border-gray-700 text-white"
+                  className="flex-1 h-16 text-lg font-mono bg-black border-gray-700 text-black placeholder-gray-500"
                   placeholder="#ffffff"
                 />
               </div>
@@ -270,8 +270,7 @@ export function AlertCustomizer() {
           </CardContent>
         </Card>
       </motion.div>
-
-      {/* Font & Duration */}
+      {/* Font & Duration - FIXED SLIDER */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -290,16 +289,16 @@ export function AlertCustomizer() {
             <div className="space-y-3">
               <Label className="text-gray-300">Шрифт</Label>
               <Select value={settings.font} onValueChange={(value) => setSettings({ ...settings, font: value })}>
-                <SelectTrigger className="h-12 bg-black-800 border-black-700 text-white hover:border-purple-500/50 transition-colors">
+                <SelectTrigger className="h-12 bg-black border-gray-700 text-black hover:border-purple-500/50 transition-colors">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-yellow border-black-200 shadow-lg">
+                <SelectContent className="bg-white border-gray-200 shadow-lg">
                   {FONTS.map((f) => (
                     <SelectItem 
                       key={f} 
                       value={f} 
                       style={{ fontFamily: f }} 
-                      className="text-black-900 hover:bg-black-100 focus:bg-black-100 cursor-pointer"
+                      className="text-black hover:bg-gray-100 focus:bg-gray-100 cursor-pointer"
                     >
                       {f}
                     </SelectItem>
@@ -310,7 +309,7 @@ export function AlertCustomizer() {
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label className="text-black-300 flex items-center gap-2">
+                <Label className="text-gray-300 flex items-center gap-2">
                   <div className="w-4 h-4 rounded-full bg-gradient-to-r from-amber-400 to-orange-400 flex items-center justify-center">
                     <Clock className="w-3 h-3 text-white" />
                   </div>
@@ -318,7 +317,9 @@ export function AlertCustomizer() {
                 </Label>
                 <span className="text-cyan-400 font-bold text-lg bg-cyan-500/10 px-3 py-1 rounded-full">{settings.duration_sec} сек</span>
               </div>
-              <div className="pt-2">
+              
+              {/* Fixed Slider with no offset */}
+              <div className="relative pt-2">
                 <Slider
                   value={[settings.duration_sec]}
                   onValueChange={([value]) => setSettings({ ...settings, duration_sec: value })}
@@ -326,10 +327,12 @@ export function AlertCustomizer() {
                   max={15}
                   step={1}
                   disabled={isSaving}
-                  className="[&_[role=slider]]:w-5 [&_[role=slider]]:h-5 [&_[role=slider]]:rounded-full [&_[role=slider]]:border-2 [&_[role=slider]]:border-white [&_[role=slider]]:bg-gradient-to-r [&_[role=slider]]:from-cyan-500 [&_[role=slider]]:to-purple-600 [&_[role=slider]]:shadow-lg [&>span]:h-2 [&>span]:rounded-full [&>span]:bg-gradient-to-r [&>span]:from-cyan-500 [&>span]:to-purple-600"
+                  className="w-full"
                 />
               </div>
-              <div className="flex justify-between text-xs text-gray-500">
+              
+              {/* Labels for min and max values */}
+              <div className="flex justify-between text-xs text-gray-500 px-1">
                 <span className="bg-gray-800/50 px-2 py-1 rounded">3 сек</span>
                 <span className="bg-gray-800/50 px-2 py-1 rounded">15 сек</span>
               </div>
@@ -338,7 +341,7 @@ export function AlertCustomizer() {
         </Card>
       </motion.div>
 
-      {/* TTS & Image Settings - исправлен выпадающий список с чёрным текстом */}
+      {/* TTS & Image Settings - Fixed dropdown with black text */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -384,23 +387,23 @@ export function AlertCustomizer() {
                     value={settings.tts_voice}
                     onValueChange={(value) => setSettings({ ...settings, tts_voice: value })}
                   >
-                    <SelectTrigger className="h-12 bg-black-800 border-black-600 text-black hover:border-yellow-500/50 transition-colors focus:ring-2 focus:ring-yellow-500/50">
+                    <SelectTrigger className="h-12 bg-gray-800 border-gray-700 text-white hover:border-yellow-500/50 transition-colors focus:ring-2 focus:ring-yellow-500/50">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-blue border-black-200 shadow-lg">
+                    <SelectContent className="bg-white border-gray-200 shadow-lg">
                       {TTS_VOICES.map((voice) => (
                         <SelectItem 
                           key={voice} 
                           value={voice} 
-                          className="text-black-900 hover:bg-black-100 focus:bg-black-100 cursor-pointer"
+                          className="text-black hover:bg-gray-100 focus:bg-gray-100 cursor-pointer"
                         >
                           <div className="flex items-center gap-2">
-                            {voice === 'default' && <Volume2 className="w-3 h-3 text-black-500" />}
+                            {voice === 'default' && <Volume2 className="w-3 h-3 text-gray-600" />}
                             {voice === 'male' && <span className="text-blue-500">👨</span>}
                             {voice === 'female' && <span className="text-pink-500">👩</span>}
                             {voice === 'robot' && <span className="text-cyan-500">🤖</span>}
                             {voice === 'whisper' && <span className="text-purple-500">🤫</span>}
-                            <span className="capitalize">
+                            <span className="capitalize text-black">
                               {voice === 'default' ? 'Стандартный' : voice === 'male' ? 'Мужской' : voice === 'female' ? 'Женский' : voice === 'robot' ? 'Робот' : 'Шёпот'}
                             </span>
                           </div>
