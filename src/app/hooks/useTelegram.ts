@@ -1,106 +1,117 @@
 import { useEffect, useState } from 'react';
-import WebApp from '@twa-dev/sdk';
+import {
+  init,
+  retrieveLaunchParams,
+  miniApp,
+  hapticFeedback,
+  mainButton,
+  backButton,
+  cloudStorage,
+  openLink,
+} from '@telegram-apps/sdk';
+
+interface TelegramUser {
+  id: number;
+  first_name: string;
+  last_name?: string;
+  username?: string;
+  photo_url?: string;
+}
 
 export function useTelegram() {
   const [isReady, setIsReady] = useState(false);
+  const [user, setUser] = useState<TelegramUser | null>(null);
+  const [initData, setInitData] = useState('');
+  const [platform, setPlatform] = useState('unknown');
+  const [version, setVersion] = useState('0.0');
+  const [colorScheme, setColorScheme] = useState('light');
 
   useEffect(() => {
-    // Инициализация Telegram Web App (без падения в браузере/эмуляторе)
-    if (!WebApp || typeof WebApp.ready !== 'function') return;
-
-    try {
-      WebApp.ready();
-
-      // Расширяем на весь экран
-      if (typeof WebApp.expand === 'function') {
-        WebApp.expand();
-      }
-
-      // Устанавливаем цвета
-      if (typeof WebApp.setHeaderColor === 'function') {
-        WebApp.setHeaderColor('#6366f1');
-      }
-      if (typeof WebApp.setBackgroundColor === 'function') {
-        WebApp.setBackgroundColor('#f9fafb');
-      }
-
-      setIsReady(true);
-
-      console.log('Telegram Web App initialized');
-      console.log('User:', WebApp.initDataUnsafe?.user);
-      console.log('Platform:', WebApp.platform);
-      console.log('InitData:', WebApp.initData);
-    } catch (error) {
-      console.error('Telegram Web App init error:', error);
-      setIsReady(false);
-    }
+    initTelegram();
   }, []);
 
+  const initTelegram = async () => {
+    try {
+      // v3: init() возвращает промис
+      await init();
+
+      const launchParams = retrieveLaunchParams();
+      const initDataObj = launchParams.initData;
+
+      if (initDataObj?.user) {
+        setUser({
+          id: initDataObj.user.id,
+          first_name: initDataObj.user.firstName,
+          last_name: initDataObj.user.lastName,
+          username: initDataObj.user.username,
+          photo_url: initDataObj.user.photoUrl,
+        });
+      }
+
+      if (launchParams.initDataRaw) {
+        setInitData(launchParams.initDataRaw);
+      }
+
+      // v3: miniApp возвращает промисы
+      await miniApp.ready();
+      miniApp.setHeaderColor('#6366f1');
+      miniApp.setBackgroundColor('#f9fafb');
+
+      // v3: свойства через miniApp напрямую
+      setPlatform(miniApp.platform);
+      setVersion(miniApp.version);
+      setColorScheme(miniApp.colorScheme);
+
+      setIsReady(true);
+    } catch (error) {
+      console.error('[Telegram] Init error:', error);
+      setIsReady(true);
+    }
+  };
+
   return {
-    // Основные данные
-    webApp: WebApp,
     isReady,
-    user: WebApp?.initDataUnsafe?.user,
-    initData: WebApp?.initData,
-    initDataUnsafe: WebApp?.initDataUnsafe,
+    user,
+    initData,
+    platform,
+    version,
+    colorScheme,
 
-    // Утилиты
-    showAlert: (message: string) => WebApp?.showAlert?.(message),
-    showConfirm: (message: string) => WebApp?.showConfirm?.(message),
-    showPopup: (params: { title?: string; message: string; buttons?: any[] }) =>
-      WebApp?.showPopup?.(params),
+    ready: () => miniApp.ready(),
+    close: () => close(),
 
-    // Haptic feedback
-    hapticFeedback: {
-      impactOccurred: (style: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft') =>
-        WebApp?.HapticFeedback?.impactOccurred?.(style),
-      notificationOccurred: (type: 'error' | 'success' | 'warning') =>
-        WebApp?.HapticFeedback?.notificationOccurred?.(type),
-      selectionChanged: () => WebApp?.HapticFeedback?.selectionChanged?.(),
+    haptic: {
+      impactLight: () => hapticFeedback.impactOccurred('light'),
+      impactMedium: () => hapticFeedback.impactOccurred('medium'),
+      impactHeavy: () => hapticFeedback.impactOccurred('heavy'),
+      notificationSuccess: () => hapticFeedback.notificationOccurred('success'),
+      notificationError: () => hapticFeedback.notificationOccurred('error'),
+      selection: () => hapticFeedback.selectionChanged(),
     },
 
-    // Управление
-    close: () => WebApp?.close?.(),
-    openLink: (
-      url: string,
-      options?: Parameters<typeof WebApp.openLink>[1],
-    ) => WebApp?.openLink?.(url, options),
-    openTelegramLink: (url: string) => WebApp?.openTelegramLink?.(url),
-
-    // Main Button
-    MainButton: {
-      show: () => WebApp?.MainButton?.show?.(),
-      hide: () => WebApp?.MainButton?.hide?.(),
-      setText: (text: string) => WebApp?.MainButton?.setText?.(text),
-      onClick: (callback: () => void) => WebApp?.MainButton?.onClick?.(callback),
-      offClick: (callback: () => void) => WebApp?.MainButton?.offClick?.(callback),
-      enable: () => WebApp?.MainButton?.enable?.(),
-      disable: () => WebApp?.MainButton?.disable?.(),
-      showProgress: () => WebApp?.MainButton?.showProgress?.(),
-      hideProgress: () => WebApp?.MainButton?.hideProgress?.(),
+    mainButton: {
+      show: () => mainButton.show(),
+      hide: () => mainButton.hide(),
+      setText: (text: string) => mainButton.setText(text),
+      enable: () => mainButton.enable(),
+      disable: () => mainButton.disable(),
+      showLoader: () => mainButton.showLoader(),
+      hideLoader: () => mainButton.hideLoader(),
+      onClick: (fn: () => void) => mainButton.onClick(fn),
     },
 
-    // Back Button
-    BackButton: {
-      show: () => WebApp?.BackButton?.show?.(),
-      hide: () => WebApp?.BackButton?.hide?.(),
-      onClick: (callback: () => void) => WebApp?.BackButton?.onClick?.(callback),
-      offClick: (callback: () => void) => WebApp?.BackButton?.offClick?.(callback),
+    backButton: {
+      show: () => backButton.show(),
+      hide: () => backButton.hide(),
+      onClick: (fn: () => void) => backButton.onClick(fn),
     },
 
-    // Cloud Storage (для сохранения данных)
-    CloudStorage: {
-      setItem: (key: string, value: string) =>
-        WebApp?.CloudStorage?.setItem?.(key, value),
-      getItem: (key: string) =>
-        WebApp?.CloudStorage?.getItem?.(key),
-      removeItem: (key: string) =>
-        WebApp?.CloudStorage?.removeItem?.(key),
+    cloudStorage: {
+      set: (key: string, value: string) => cloudStorage.setItem(key, value),
+      get: (key: string) => cloudStorage.getItem(key),
+      remove: (key: string) => cloudStorage.removeItem(key),
     },
 
-    // Проверка платформы
-    platform: WebApp?.platform || 'unknown',
-    version: WebApp?.version || '0.0',
-    colorScheme: WebApp?.colorScheme || 'light',
+    openLink: (url: string) => openLink(url),
   };
 }
