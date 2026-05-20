@@ -42,7 +42,7 @@ jobs:
           ssh -A -p ${{ secrets.DEV_SSH_PORT }} ${{ secrets.DEV_SSH_USER }}@${{ secrets.DEV_SSH_HOST }} << 'EOF'
           set -e
 
-          cd ${{ secrets.DEV_FRONTEND_DIR }}
+          cd ${{ secrets.DEV_WORK_DIR }}
           echo "pwd: $(pwd)"
 
           echo "===> update frontend repo (dev)"
