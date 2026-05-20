@@ -54,7 +54,7 @@ jobs:
           echo "VITE_API_FRONTEND_URL=${{ secrets.DEV_VITE_API_FRONTEND_URL }}" >> .env
           echo "VITE_ENVIRONMENT=${{ secrets.DEV_VITE_ENVIRONMENT }}" >> .env
 
-          npm ci --frozen-lockfile
+          npm install
           npm run build:prod
 
           if [ ! -d "dist" ]; then
