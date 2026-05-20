@@ -54,8 +54,8 @@ jobs:
           echo "VITE_API_FRONTEND_URL=${{ secrets.DEV_VITE_API_FRONTEND_URL }}" >> .env
           echo "VITE_ENVIRONMENT=${{ secrets.DEV_VITE_ENVIRONMENT }}" >> .env
 
-          yarn install --frozen-lockfile
-          yarn build:prod
+          npm ci --frozen-lockfile
+          npm run build:prod
 
           if [ ! -d "dist" ]; then
             echo "dist folder not found after build"
