@@ -43,14 +43,17 @@ jobs:
           set -e
 
           cd ${{ secrets.DEV_WORK_DIR }}
-          echo "pwd: $(pwd)"
 
-          echo "===> update frontend repo (dev)"
           git fetch origin
           git checkout dev
           git reset --hard origin/dev
 
-          echo "===> build frontend"
+          rm -f .env
+          touch .env
+          echo "VITE_API_BASE_URL=${{ secrets.DEV_VITE_API_BASE_URL }}" >> .env
+          echo "VITE_API_FRONTEND_URL=${{ secrets.DEV_VITE_API_FRONTEND_URL }}" >> .env
+          echo "VITE_ENVIRONMENT=${{ secrets.DEV_VITE_ENVIRONMENT }}" >> .env
+
           yarn install --frozen-lockfile
           yarn build:prod
 
@@ -59,7 +62,6 @@ jobs:
             exit 1
           fi
 
-          echo "===> sync dist to target directory"
           rm -rf ${{ secrets.DEV_FE_DIST_DIR }}/*
           cp -r dist/* ${{ secrets.DEV_FE_DIST_DIR }}/
 
