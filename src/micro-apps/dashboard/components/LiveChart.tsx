@@ -4,7 +4,8 @@ import {
   CategoryScale,
   LinearScale,
   BarElement,
-  BarController, // 👈 ДОБАВЬТЕ ЭТОТ ИМПОРТ
+  BarController,
+  LineController,
   LineElement,
   PointElement,
   Filler,
@@ -18,11 +19,12 @@ ChartJS.register(
   CategoryScale,
   LinearScale,
   BarElement,
-  BarController, // 👈 И ЗАРЕГИСТРИРУЙТЕ ЕГО ЗДЕСЬ
+  BarController,
+  LineController,
   LineElement,
   PointElement,
   Filler,
-  Tooltip
+  Tooltip,
 );
 
 interface LiveChartProps {
