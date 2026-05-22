@@ -4,6 +4,7 @@ import {
   CategoryScale,
   LinearScale,
   BarElement,
+  BarController, // 👈 ДОБАВЬТЕ ЭТОТ ИМПОРТ
   LineElement,
   PointElement,
   Filler,
@@ -12,11 +13,12 @@ import {
 import { Chart } from 'react-chartjs-2';
 import type { LiveChartPoint } from '../hooks/useLiveChart';
 
-// Регистрируем только нужные компоненты (tree-shaking)
+// Регистрируем все нужные компоненты
 ChartJS.register(
   CategoryScale,
   LinearScale,
   BarElement,
+  BarController, // 👈 И ЗАРЕГИСТРИРУЙТЕ ЕГО ЗДЕСЬ
   LineElement,
   PointElement,
   Filler,
