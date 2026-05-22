@@ -1,4 +1,3 @@
-import { motion } from 'motion/react';
 import { Lock, AlertCircle, RefreshCw, Monitor } from 'lucide-react';
 
 interface AuthPageProps {
@@ -8,11 +7,11 @@ interface AuthPageProps {
   onRetry?: () => void;
 }
 
-export function AuthPage({ 
-  error, 
-  isTelegramReady, 
-  telegramUser, 
-  onRetry 
+export function AuthPage({
+  error,
+  isTelegramReady,
+  telegramUser,
+  onRetry,
 }: AuthPageProps) {
   const isLocalMode = () => {
     const tgInitData = window.Telegram?.WebApp?.initData;
@@ -21,33 +20,20 @@ export function AuthPage({
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex flex-col items-center justify-center p-6">
-      <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.5 }}
-        className="text-center max-w-md w-full"
-      >
-        {/* Logo */}
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, ease: 'easeOut' }}
-          className="inline-flex items-center justify-center w-32 h-32 bg-white/50 backdrop-blur-sm rounded-full mb-6 overflow-hidden shadow-lg"
-        >
+      <div className="tipbot-fade-up text-center max-w-md w-full">
+        <div className="tipbot-logo-spin inline-flex items-center justify-center w-32 h-32 bg-white/50 backdrop-blur-sm rounded-full mb-6 overflow-hidden shadow-lg">
           <img
             src="/snack.webp"
             alt="Логотип"
             className="w-32 h-32 rounded-full object-cover object-[50%_100%]"
           />
-        </motion.div>
+        </div>
 
-        {/* Title */}
         <h1 className="text-3xl font-bold mb-2 text-gray-800">TipBot</h1>
         <p className="text-gray-600 mb-8">Донаты для стримеров</p>
 
-        {/* Status */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
           {isLocalMode() ? (
-            // Локальный режим
             <>
               <div className="flex items-center justify-center gap-2 text-blue-600 mb-4">
                 <Monitor className="w-5 h-5" />
@@ -72,7 +58,6 @@ export function AuthPage({
               )}
             </>
           ) : isTelegramReady && telegramUser ? (
-            // Mini App режим - Telegram подключен
             <>
               <div className="flex items-center justify-center gap-2 text-green-600 mb-4">
                 <Lock className="w-5 h-5" />
@@ -95,12 +80,9 @@ export function AuthPage({
                   )}
                 </div>
               </div>
-              <p className="text-sm text-gray-500">
-                Выполняется вход...
-              </p>
+              <p className="text-sm text-gray-500">Выполняется вход...</p>
             </>
           ) : (
-            // Mini App режим - ошибка или ожидание
             <div className="flex flex-col items-center gap-4">
               {!isTelegramReady ? (
                 <>
@@ -138,7 +120,6 @@ export function AuthPage({
           )}
         </div>
 
-        {/* Footer Info */}
         <div className="text-sm text-gray-500">
           <p>
             {isLocalMode()
@@ -146,7 +127,7 @@ export function AuthPage({
               : '🔐 Безопасная авторизация через Telegram'}
           </p>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

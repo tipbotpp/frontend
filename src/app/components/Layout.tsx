@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router';
 import { Home, User, Settings, TrendingUp } from 'lucide-react';
-import { motion } from 'motion/react';
 import { userApi } from '@/services/api';
 import type { User as UserType } from '@/app/types';
 
@@ -59,12 +58,7 @@ export function Layout() {
                 className="relative flex flex-col items-center justify-center flex-1 h-full transition-colors"
               >
                 {isActive && (
-                  <motion.div
-                    layoutId="activeTab"
-                    className="absolute inset-x-2 top-0 h-0.5 bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full"
-                    initial={false}
-                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                  />
+                  <div className="absolute inset-x-2 top-0 h-0.5 bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full transition-opacity duration-200" />
                 )}
                 <Icon
                   className={`w-5 h-5 transition-colors ${
