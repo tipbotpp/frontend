@@ -1,4 +1,3 @@
-import { motion } from 'motion/react';
 import { Button } from './ui/button';
 import { ArrowRight, Gift, Zap, Shield } from 'lucide-react';
 
@@ -9,26 +8,15 @@ interface WelcomeScreenProps {
 export function WelcomeScreen({ onComplete }: WelcomeScreenProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-pink-500 flex items-center justify-center p-6">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="max-w-md w-full"
-      >
+      <div className="tipbot-fade-up max-w-md w-full">
         <div className="bg-white rounded-3xl shadow-2xl p-8 text-center">
-          {/* Logo */}
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: 'spring' }}
-            className="w-24 h-24 mx-auto mb-6"
-          >
+          <div className="tipbot-scale-in w-24 h-24 mx-auto mb-6">
             <img
               src="/snack.webp"
               alt="TipBot"
               className="w-full h-full rounded-full object-cover"
             />
-          </motion.div>
+          </div>
 
           <h1 className="text-3xl font-bold mb-2 text-gray-800">
             Добро пожаловать в TipBot!
@@ -37,7 +25,6 @@ export function WelcomeScreen({ onComplete }: WelcomeScreenProps) {
             Поддерживай любимых стримеров и получай награды
           </p>
 
-          {/* Features */}
           <div className="space-y-4 mb-8 text-left">
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -80,7 +67,7 @@ export function WelcomeScreen({ onComplete }: WelcomeScreenProps) {
             Нажимая "Начать", вы принимаете условия использования
           </p>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }
