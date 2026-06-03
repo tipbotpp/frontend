@@ -188,7 +188,7 @@ export function Home() {
                 placeholder="Поиск стримеров..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-12 h-14 bg-gray-900/80 backdrop-blur-xl border border-gray-700/50 rounded-2xl text-white placeholder-gray-500 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/30 transition-all duration-300"
+                className="pl-12 h-14 bg-gray-900/80 backdrop-blur-xl border border-gray-700/50 rounded-2xl text-gray-900 placeholder-gray-500 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/30 transition-all duration-300"
               />
             </div>
           </motion.div>
@@ -360,7 +360,7 @@ export function Home() {
                     value={depositAmount}
                     onChange={(e) => setDepositAmount(e.target.value)}
                     min="1"
-                    className="flex-1 h-12 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-cyan-500/50"
+                    className="flex-1 h-12 bg-gray-800 border border-gray-700 rounded-xl text-gray-900 placeholder-gray-500 focus:border-cyan-500/50"
                   />
                   <Button
                     onClick={handleCustomDeposit}
