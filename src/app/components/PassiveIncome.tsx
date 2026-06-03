@@ -204,7 +204,7 @@ export function PassiveIncome() {
                         max="100"
                         value={settings.coins_per_interval}
                         onChange={handleCoinsChange}
-                        className="text-center text-lg font-bold text-white bg-gray-800 border-gray-700"
+                        className="text-center text-lg font-bold text-gray-900 bg-gray-100 border-gray-300"
                         disabled={isSaving}
                       />
                     </div>
@@ -253,7 +253,7 @@ export function PassiveIncome() {
                         max="60"
                         value={settings.interval_minutes}
                         onChange={handleIntervalChange}
-                        className="text-center text-lg font-bold text-white bg-gray-800 border-gray-700"
+                        className="text-center text-lg font-bold text-gray-900 bg-gray-100 border-gray-300"
                         disabled={isSaving}
                       />
                     </div>

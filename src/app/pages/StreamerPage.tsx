@@ -246,8 +246,8 @@ export function StreamerPage() {
                 }}
                 className={`h-14 sm:h-16 text-sm sm:text-base ${
                   amount === preset
-                    ? 'bg-purple-600 hover:bg-purple-700 border-0'
-                    : 'border-gray-700 text-gray-300 hover:bg-gray-800'
+                    ? 'bg-purple-600 hover:bg-purple-700 text-white border-0'  // активная кнопка
+                    : 'border-gray-300 text-black hover:bg-gray-100 bg-white'
                 }`}
                 disabled={isSending}
               >
@@ -283,7 +283,7 @@ export function StreamerPage() {
             placeholder="Напишите сообщение стримеру..."
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            className="min-h-20 sm:min-h-24 resize-none bg-gray-800 border-gray-700 text-white placeholder-gray-500 focus:ring-purple-500 text-sm"
+            className="min-h-20 sm:min-h-24 resize-none bg-white border border-gray-300 text-black placeholder-gray-400 focus:ring-purple-500 text-sm" 
             maxLength={200}
             disabled={isSending}
           />
