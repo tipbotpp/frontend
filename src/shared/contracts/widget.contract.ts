@@ -12,6 +12,13 @@ export interface WidgetConfig {
     font: string;
     duration_sec: number;
   };
+  /** Начальное состояние цели (если бэк отдаёт при загрузке) */
+  goal?: {
+    title: string;
+    target_amount: number;
+    current_amount: number;
+    percent: number;
+  } | null;
   ws_url: string;
 }
 

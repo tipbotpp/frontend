@@ -10,14 +10,18 @@ if (ENVIRONMENT === 'development') {
   console.log(`[HTTP] Frontend URL: ${FRONTEND_URL}`)
 }
 
-// Определяем режим работы
+/** Mock-авторизация только при `vite` dev (`npm run dev`), никогда в build. */
+export const canUseMockAuth = () => import.meta.env.DEV
+
 export const isLocalMode = () => {
+  if (!canUseMockAuth()) return false
   const tgInitData = window.Telegram?.WebApp?.initData
   return !tgInitData || tgInitData === ''
 }
 
-// Mock token для локальной разработки
-export const MOCK_TOKEN = import.meta.env.VITE_MOCK_TOKEN || 'mock_token_q9830md893sn9msdmafo'
+export const MOCK_TOKEN = canUseMockAuth()
+  ? import.meta.env.VITE_MOCK_TOKEN || 'mock_token_q9830md893sn9msdmafo'
+  : ''
 
 // Типы для ответа с ошибкой
 interface ApiError {
@@ -148,5 +152,5 @@ export const post = http.post
 export const put = http.put
 export const del = http.delete
 
-export const isDev = () => ENVIRONMENT === 'development'
-export const isProd = () => ENVIRONMENT === 'production'
+export const isDev = () => import.meta.env.DEV
+export const isProd = () => import.meta.env.PROD
