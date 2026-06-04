@@ -1,5 +1,7 @@
 // src/services/http.ts
 
+import { isTelegramMiniApp } from '@/shared/telegram/initData'
+
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://dev.api.tipbot.qu1nqqy.ru'
 export const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL || window.location.origin
 export const ENVIRONMENT = import.meta.env.VITE_ENVIRONMENT || 'development'
@@ -15,6 +17,7 @@ export const canUseMockAuth = () => import.meta.env.DEV
 
 export const isLocalMode = () => {
   if (!canUseMockAuth()) return false
+  if (isTelegramMiniApp()) return false
   const tgInitData = window.Telegram?.WebApp?.initData
   return !tgInitData || tgInitData === ''
 }

@@ -136,7 +136,9 @@ export function Home() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3 }}
               >
-                {user?.display_name || user?.username || 'Гость'}
+                {user?.display_name ||
+                  user?.username ||
+                  (user?.telegram_id ? `ID ${user.telegram_id}` : 'Гость')}
               </motion.h1>
             </div>
             
