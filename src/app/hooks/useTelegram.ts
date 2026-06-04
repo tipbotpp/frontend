@@ -9,6 +9,11 @@ import {
   cloudStorage,
   openLink,
 } from '@telegram-apps/sdk';
+import {
+  getTelegramInitDataRaw,
+  getTelegramUserFromWebApp,
+  isTelegramMiniApp,
+} from '@/shared/telegram/initData';
 
 interface TelegramUser {
   id: number;
@@ -27,47 +32,69 @@ export function useTelegram() {
   const [colorScheme, setColorScheme] = useState('light');
 
   useEffect(() => {
+    let cancelled = false;
+
+    const initTelegram = async () => {
+      try {
+        if (isTelegramMiniApp()) {
+          window.Telegram!.WebApp!.ready();
+        }
+
+        await init();
+
+        const launchParams = retrieveLaunchParams();
+        const initDataObj = launchParams.initData;
+
+        if (initDataObj?.user) {
+          setUser({
+            id: initDataObj.user.id,
+            first_name: initDataObj.user.firstName,
+            last_name: initDataObj.user.lastName,
+            username: initDataObj.user.username,
+            photo_url: initDataObj.user.photoUrl,
+          });
+        } else {
+          const webAppUser = getTelegramUserFromWebApp();
+          if (webAppUser) setUser(webAppUser);
+        }
+
+        const raw =
+          launchParams.initDataRaw?.trim() || getTelegramInitDataRaw();
+        if (raw) setInitData(raw);
+
+        await miniApp.ready();
+        miniApp.setHeaderColor('#6366f1');
+        miniApp.setBackgroundColor('#f9fafb');
+
+        setPlatform(miniApp.platform);
+        setVersion(miniApp.version);
+        setColorScheme(miniApp.colorScheme);
+      } catch (error) {
+        console.error('[Telegram] SDK init error:', error);
+
+        const raw = getTelegramInitDataRaw();
+        if (raw) setInitData(raw);
+
+        const webAppUser = getTelegramUserFromWebApp();
+        if (webAppUser) setUser(webAppUser);
+
+        if (isTelegramMiniApp()) {
+          const webApp = window.Telegram!.WebApp!;
+          setPlatform(webApp.platform || 'unknown');
+          setVersion(webApp.version || '0.0');
+          setColorScheme(webApp.colorScheme || 'light');
+        }
+      } finally {
+        if (!cancelled) setIsReady(true);
+      }
+    };
+
     initTelegram();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
-
-  const initTelegram = async () => {
-    try {
-      // v3: init() возвращает промис
-      await init();
-
-      const launchParams = retrieveLaunchParams();
-      const initDataObj = launchParams.initData;
-
-      if (initDataObj?.user) {
-        setUser({
-          id: initDataObj.user.id,
-          first_name: initDataObj.user.firstName,
-          last_name: initDataObj.user.lastName,
-          username: initDataObj.user.username,
-          photo_url: initDataObj.user.photoUrl,
-        });
-      }
-
-      if (launchParams.initDataRaw) {
-        setInitData(launchParams.initDataRaw);
-      }
-
-      // v3: miniApp возвращает промисы
-      await miniApp.ready();
-      miniApp.setHeaderColor('#6366f1');
-      miniApp.setBackgroundColor('#f9fafb');
-
-      // v3: свойства через miniApp напрямую
-      setPlatform(miniApp.platform);
-      setVersion(miniApp.version);
-      setColorScheme(miniApp.colorScheme);
-
-      setIsReady(true);
-    } catch (error) {
-      console.error('[Telegram] Init error:', error);
-      setIsReady(true);
-    }
-  };
 
   return {
     isReady,
