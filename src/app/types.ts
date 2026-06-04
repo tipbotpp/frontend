@@ -53,6 +53,8 @@ export interface StreamerProfile {
   avatar_url: string | null;
   description: string | null;
   is_live: boolean;
+  /** Токен активного стрима — для WebSocket зрителя /ws/viewer/{stream_token} */
+  stream_token?: string | null;
   goal: GoalPreview | null;
   alert_preview: AlertPreview | null;
 }

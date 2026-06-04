@@ -13,9 +13,14 @@ interface WidgetAppProps {
 export function WidgetApp({ streamToken, onReady, onError }: WidgetAppProps) {
   const [config, setConfig] = useState<WidgetConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { donations, isConnected, removeDonation } = useWidgetSocket(
-    config?.ws_url || null
-  );
+  const {
+    donations,
+    goal,
+    isConnected,
+    streamStopped,
+    removeDonation,
+    acknowledgeAlert,
+  } = useWidgetSocket(config?.ws_url || null);
 
   useEffect(() => {
     loadConfig();
@@ -55,27 +60,45 @@ export function WidgetApp({ streamToken, onReady, onError }: WidgetAppProps) {
 
   return (
     <div className="fixed inset-0 bg-transparent overflow-hidden pointer-events-none">
-      {/* Индикатор подключения */}
       <div className="fixed top-2 left-2 z-50 flex items-center gap-1.5 px-2 py-1 rounded-full bg-black/30 backdrop-blur-sm">
-        <div className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`} />
+        <div
+          className={`w-1.5 h-1.5 rounded-full ${
+            streamStopped
+              ? 'bg-gray-400'
+              : isConnected
+                ? 'bg-green-400 animate-pulse'
+                : 'bg-red-400'
+          }`}
+        />
         <span className="text-white/50 text-[10px]">
-          {isConnected ? 'LIVE' : 'OFF'}
+          {streamStopped ? 'OFFLINE' : isConnected ? 'LIVE' : 'CONNECTING'}
         </span>
       </div>
 
-      {/* Очередь алертов */}
+      {goal && (
+        <div className="fixed bottom-4 left-4 right-4 z-40 max-w-md mx-auto pointer-events-none">
+          <div className="bg-black/50 backdrop-blur-md rounded-xl px-4 py-3 border border-white/10">
+            <div className="flex justify-between text-white text-sm mb-2">
+              <span className="font-medium truncate">🎯 {goal.title}</span>
+              <span className="text-purple-300 shrink-0 ml-2">{goal.percent}%</span>
+            </div>
+            <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-500"
+                style={{ width: `${Math.min(goal.percent, 100)}%` }}
+              />
+            </div>
+            <p className="text-white/50 text-xs mt-1 text-right">
+              {goal.current_amount} / {goal.target_amount} coins
+            </p>
+          </div>
+        </div>
+      )}
+
       <AlertQueue
         donations={donations}
-        settings={{
-          bg_color: config.alert_style.bg_color,
-          text_color: config.alert_style.text_color || '#ffffff',
-          font: config.alert_style.font,
-          duration_sec: config.alert_style.duration_sec,
-          image_enabled: false,
-          tts_enabled: false,
-          tts_voice: 'default',
-        }}
         onRemove={removeDonation}
+        onDisplayed={acknowledgeAlert}
       />
     </div>
   );

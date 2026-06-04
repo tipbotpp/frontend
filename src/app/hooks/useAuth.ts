@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTelegram } from './useTelegram'
 import { authApi, userApi } from '@/services/api'
-import { MOCK_TOKEN } from '@/services/http'
+import { MOCK_TOKEN, canUseMockAuth } from '@/services/http'
 import type { User } from '@/app/types'
 
 interface AuthState {
@@ -22,9 +22,8 @@ export function useAuth() {
 
   const checkAuth = useCallback(async () => {
     try {
-      setState(prev => ({ ...prev, isLoading: true, error: null }))
+      setState((prev) => ({ ...prev, isLoading: true, error: null }))
 
-      // Пробуем получить данные пользователя
       try {
         const userData = await userApi.getMe()
         setState({
@@ -40,21 +39,27 @@ export function useAuth() {
         }
       }
 
-      // Авторизуемся
-      console.log('[Auth] Authenticating...')
-      
-      const tgInitData = telegram.initData
-      const localMode = !tgInitData || tgInitData === ''
+      const tgInitData = telegram.initData?.trim() ?? ''
+      const useMock = canUseMockAuth() && !tgInitData
 
-      const authData = localMode ? MOCK_TOKEN : tgInitData
-      const mode = localMode ? 'Local' : 'Mini App'
-      
-      console.log(`[Auth] ${mode} mode: authenticating`)
-      const response = await authApi.login(authData)
-      
-      // После успешной авторизации получаем данные пользователя
+      if (!useMock && !tgInitData) {
+        setState({
+          user: null,
+          isLoading: false,
+          isAuthenticated: false,
+          error: telegram.isReady
+            ? 'Откройте приложение в Telegram Mini App'
+            : 'Ожидание Telegram...',
+        })
+        return
+      }
+
+      const authData = useMock ? MOCK_TOKEN : tgInitData
+      console.log(`[Auth] ${useMock ? 'Local dev' : 'Mini App'}: authenticating`)
+
+      await authApi.login(authData)
       const userData = await userApi.getMe()
-      
+
       setState({
         user: userData,
         isLoading: false,
@@ -70,7 +75,7 @@ export function useAuth() {
         error: error?.message || 'Ошибка авторизации',
       })
     }
-  }, [telegram.initData])
+  }, [telegram.initData, telegram.isReady])
 
   const logout = useCallback(async () => {
     try {

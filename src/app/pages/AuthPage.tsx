@@ -1,4 +1,5 @@
 import { Lock, AlertCircle, RefreshCw, Monitor } from 'lucide-react';
+import { isLocalMode } from '@/services/http';
 
 interface AuthPageProps {
   error?: string | null;
@@ -13,10 +14,7 @@ export function AuthPage({
   telegramUser,
   onRetry,
 }: AuthPageProps) {
-  const isLocalMode = () => {
-    const tgInitData = window.Telegram?.WebApp?.initData;
-    return !tgInitData || tgInitData === '';
-  };
+  const localDev = isLocalMode();
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex flex-col items-center justify-center p-6">
@@ -33,7 +31,7 @@ export function AuthPage({
         <p className="text-gray-600 mb-8">Донаты для стримеров</p>
 
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-          {isLocalMode() ? (
+          {localDev ? (
             <>
               <div className="flex items-center justify-center gap-2 text-blue-600 mb-4">
                 <Monitor className="w-5 h-5" />
@@ -122,7 +120,7 @@ export function AuthPage({
 
         <div className="text-sm text-gray-500">
           <p>
-            {isLocalMode()
+            {localDev
               ? '🛠️ Режим разработки'
               : '🔐 Безопасная авторизация через Telegram'}
           </p>

@@ -9,6 +9,7 @@ import { Badge } from '@/app/components/ui/badge';
 import { Alert, AlertDescription } from '@/app/components/ui/alert';
 import { toast } from 'sonner';
 import { userApi, donationApi, balanceApi, stopWordsApi, alertApi } from '@/services/api';
+import { useViewerSocket } from '@/app/hooks/useViewerSocket';
 import type { AlertSettings, StopWord } from '@/app/types';
 
 
@@ -32,6 +33,11 @@ export function StreamerPage() {
     queryFn: () => userApi.getUserById(numericId),
     enabled: isValidId,
   });
+
+  const { isWatching, status: viewerStatus } = useViewerSocket(
+    streamer?.stream_token,
+    Boolean(streamer?.is_live && streamer?.stream_token),
+  );
 
   // 🔥 React Query: баланс
   const { data: balanceData } = useQuery({
@@ -207,6 +213,12 @@ export function StreamerPage() {
                 {streamer.display_name || streamer.username || 'Аноним'}
               </h1>
               <p className="text-gray-400 text-sm">{streamer.description || 'Стример'}</p>
+              {streamer.is_live && isWatching && (
+                <p className="text-green-400 text-xs mt-1">Вы на стриме</p>
+              )}
+              {streamer.is_live && viewerStatus === 'stream_ended' && (
+                <p className="text-amber-400 text-xs mt-1">Стрим завершён</p>
+              )}
             </div>
           </div>
 
