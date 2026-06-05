@@ -130,6 +130,18 @@ export function AlertOverlay({ donation, onComplete }: AlertOverlayProps) {
             />
 
             <div className="relative">
+              {donation.image_url && (
+                <motion.img
+                  src={donation.image_url}
+                  alt=""
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 0.1, type: 'spring', stiffness: 200 }}
+                  className="w-24 h-24 rounded-full object-cover mx-auto mb-4 ring-4"
+                  style={{ ringColor: style.text_color + '40' }}
+                />
+              )}
+
               <motion.p
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
