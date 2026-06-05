@@ -63,21 +63,6 @@ export function WidgetApp({ streamToken, onReady, onError }: WidgetAppProps) {
 
   return (
     <div className="fixed inset-0 bg-transparent overflow-hidden pointer-events-none">
-      <div className="fixed top-2 left-2 z-50 flex items-center gap-1.5 px-2 py-1 rounded-full bg-black/30 backdrop-blur-sm">
-        <div
-          className={`w-1.5 h-1.5 rounded-full ${
-            streamStopped
-              ? 'bg-gray-400'
-              : isConnected
-                ? 'bg-green-400 animate-pulse'
-                : 'bg-red-400'
-          }`}
-        />
-        <span className="text-white/50 text-[10px]">
-          {streamStopped ? 'OFFLINE' : isConnected ? 'LIVE' : 'CONNECTING'}
-        </span>
-      </div>
-
       {goal && (
         <div className="fixed bottom-4 left-4 right-4 z-40 max-w-md mx-auto pointer-events-none">
           <div className="bg-black/50 backdrop-blur-md rounded-xl px-4 py-3 border border-white/10">
