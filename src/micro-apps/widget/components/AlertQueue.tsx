@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AnimatePresence } from 'motion/react';
 import { AlertOverlay } from './AlertOverlay';
 import type { WidgetDonation } from '../hooks/useWidgetSocket';
@@ -28,12 +28,12 @@ export function AlertQueue({ donations, onRemove, onDisplayed }: AlertQueueProps
     }
   }, [currentDonation, queue]);
 
-  const handleComplete = () => {
+  const handleComplete = useCallback(() => {
     if (currentDonation) {
       onDisplayed(currentDonation.donation_id);
     }
     setCurrentDonation(null);
-  };
+  }, [currentDonation, onDisplayed]);
 
   return (
     <>
