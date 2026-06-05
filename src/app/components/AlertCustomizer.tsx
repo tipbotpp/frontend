@@ -11,9 +11,14 @@ import { Switch } from './ui/switch';
 import { toast } from 'sonner';
 import { alertApi, userApi } from '@/services/api';
 import type { AlertSettings, User } from '@/app/types';
+import {
+  ML_TTS_VOICES,
+  ML_TTS_VOICE_LABELS,
+  DEFAULT_ML_TTS_VOICE,
+  normalizeMlTtsVoice,
+} from '@/shared/constants/ttsVoices';
 
 const FONTS = ['Arial', 'Comic Sans MS', 'Courier New', 'Impact', 'Times New Roman', 'Verdana', 'Georgia', 'Trebuchet MS'];
-const TTS_VOICES = ['default', 'male', 'female', 'robot', 'whisper'];
 const PRESET_THEMES = [
   { name: 'Классика', bg: '#6366f1', text: '#ffffff', font: 'Arial', gradient: 'from-indigo-500 to-purple-500' },
   { name: 'Киберпанк', bg: '#0a0a0f', text: '#00ffff', font: 'Courier New', gradient: 'from-cyan-600 to-blue-600' },
@@ -34,7 +39,7 @@ export function AlertCustomizer() {
     duration_sec: 5,
     image_enabled: false,
     tts_enabled: false,
-    tts_voice: 'default',
+    tts_voice: DEFAULT_ML_TTS_VOICE,
   });
   const [showPreview, setShowPreview] = useState(false);
   const [previewDonation] = useState({ amount: 500, message: 'Спасибо за стрим!' });
@@ -53,7 +58,10 @@ export function AlertCustomizer() {
 
       setUser(userData);
       if (alertSettings) {
-        setSettings(alertSettings);
+        setSettings({
+          ...alertSettings,
+          tts_voice: normalizeMlTtsVoice(alertSettings.tts_voice),
+        });
       }
     } catch (error) {
       console.warn('Alert settings not available yet');
@@ -87,7 +95,7 @@ export function AlertCustomizer() {
         duration_sec: settings.duration_sec,
         image_enabled: settings.image_enabled,
         tts_enabled: settings.tts_enabled,
-        tts_voice: settings.tts_voice,
+        tts_voice: normalizeMlTtsVoice(settings.tts_voice),
       });
       setSettings(updatedSettings);
       toast.success(
@@ -391,20 +399,16 @@ export function AlertCustomizer() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-white border-gray-200 shadow-lg">
-                      {TTS_VOICES.map((voice) => (
-                        <SelectItem 
-                          key={voice} 
-                          value={voice} 
+                      {ML_TTS_VOICES.map((voice) => (
+                        <SelectItem
+                          key={voice}
+                          value={voice}
                           className="text-black hover:bg-gray-100 focus:bg-gray-100 cursor-pointer"
                         >
                           <div className="flex items-center gap-2">
-                            {voice === 'default' && <Volume2 className="w-3 h-3 text-gray-600" />}
-                            {voice === 'male' && <span className="text-blue-500">👨</span>}
-                            {voice === 'female' && <span className="text-pink-500">👩</span>}
-                            {voice === 'robot' && <span className="text-cyan-500">🤖</span>}
-                            {voice === 'whisper' && <span className="text-purple-500">🤫</span>}
-                            <span className="capitalize text-black">
-                              {voice === 'default' ? 'Стандартный' : voice === 'male' ? 'Мужской' : voice === 'female' ? 'Женский' : voice === 'robot' ? 'Робот' : 'Шёпот'}
+                            <Volume2 className="w-3 h-3 text-gray-600" />
+                            <span className="text-black">
+                              {ML_TTS_VOICE_LABELS[voice]}
                             </span>
                           </div>
                         </SelectItem>
