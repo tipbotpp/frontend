@@ -1,3 +1,5 @@
+import type { MlTtsVoice } from '@/shared/constants/ttsVoices';
+
 // ========== Auth ==========
 export interface AuthResponse {
   access_token: string;
@@ -90,16 +92,18 @@ export interface AlertPreview {
   text_color: string;
   font: string;
   duration_sec: number;
+  tts_enabled?: boolean;
+  tts_voice?: MlTtsVoice;
 }
 
 export interface AlertSettings {
   bg_color: string;
   text_color: string;
   font: string;
-  duration_sec: number;  
+  duration_sec: number;
   image_enabled: boolean;
   tts_enabled: boolean;
-  tts_voice: string;
+  tts_voice: MlTtsVoice;
 }
 
 export interface AlertSettingsBody {
@@ -109,7 +113,7 @@ export interface AlertSettingsBody {
   duration_sec?: number;
   image_enabled?: boolean;
   tts_enabled?: boolean;
-  tts_voice?: string;
+  tts_voice?: MlTtsVoice;
 }
 
 // ========== Stop Words ==========
@@ -156,6 +160,7 @@ export interface DonationBody {
   streamer_id: number;
   amount: number;
   message?: string;
+  tts_voice?: MlTtsVoice;
 }
 
 export interface DonationCreateResponse {
