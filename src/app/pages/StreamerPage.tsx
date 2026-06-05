@@ -10,6 +10,10 @@ import { Alert, AlertDescription } from '@/app/components/ui/alert';
 import { toast } from 'sonner';
 import { userApi, donationApi, balanceApi, stopWordsApi, alertApi } from '@/services/api';
 import { useViewerSocket } from '@/app/hooks/useViewerSocket';
+import {
+  DEFAULT_ML_TTS_VOICE,
+  normalizeMlTtsVoice,
+} from '@/shared/constants/ttsVoices';
 import type { AlertSettings, StopWord } from '@/app/types';
 
 
@@ -120,7 +124,14 @@ export function StreamerPage() {
     donationMutation.mutate({
       streamer_id: numericId,
       amount: donationAmount,
-      message: message || undefined,
+      ...(message.trim()
+        ? {
+            message: message.trim(),
+            tts_voice: normalizeMlTtsVoice(
+              streamer?.alert_preview?.tts_voice ?? DEFAULT_ML_TTS_VOICE,
+            ),
+          }
+        : {}),
     });
   };
 
@@ -174,7 +185,7 @@ export function StreamerPage() {
     duration_sec: 5,
     image_enabled: false,
     tts_enabled: false,
-    tts_voice: 'default',
+    tts_voice: DEFAULT_ML_TTS_VOICE,
   };
 
   return (
