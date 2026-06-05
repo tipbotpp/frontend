@@ -1,8 +1,10 @@
-import { lazy, Suspense } from 'react';
+import { Suspense } from 'react';
 import { getWidgetStreamToken } from '@/shared/routing/widgetRoute';
+import { lazyNamedWithRetry } from '@/shared/utils/lazyRetry';
 
-const WidgetMicroApp = lazy(() =>
-  import('@/micro-apps/widget').then((m) => ({ default: m.WidgetApp })),
+const WidgetMicroApp = lazyNamedWithRetry(
+  () => import('@/micro-apps/widget'),
+  'WidgetApp',
 );
 
 function WidgetLoader() {

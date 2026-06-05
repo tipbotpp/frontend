@@ -1,39 +1,28 @@
 import { useState, useEffect } from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router';
+import { Outlet, NavLink } from 'react-router';
 import { Home, User, Settings, TrendingUp } from 'lucide-react';
 import { userApi } from '@/services/api';
 import type { User as UserType } from '@/app/types';
 
 export function Layout() {
-  const location = useLocation();
-  const navigate = useNavigate();
   const [user, setUser] = useState<UserType | null>(null);
 
   useEffect(() => {
-    loadUser();
+    userApi.getMe().then(setUser).catch(console.error);
   }, []);
-
-  const loadUser = async () => {
-    try {
-      const userData = await userApi.getMe();
-      setUser(userData);
-    } catch (error) {
-      console.error('Failed to load user for navigation:', error);
-    }
-  };
 
   const isStreamer = user?.role === 'streamer';
 
   const viewerTabs = [
-    { path: '/', icon: Home, label: 'Главная' },
-    { path: '/profile', icon: User, label: 'Профиль' }
+    { path: '/', icon: Home, label: 'Главная', end: true },
+    { path: '/profile', icon: User, label: 'Профиль', end: true },
   ];
 
   const streamerTabs = [
-    { path: '/', icon: Home, label: 'Главная' },
-    { path: '/dashboard', icon: TrendingUp, label: 'Dashboard' },
-    { path: '/settings', icon: Settings, label: 'Настройки' },
-    { path: '/profile', icon: User, label: 'Профиль' }
+    { path: '/', icon: Home, label: 'Главная', end: true },
+    { path: '/dashboard', icon: TrendingUp, label: 'Dashboard', end: true },
+    { path: '/settings', icon: Settings, label: 'Настройки', end: true },
+    { path: '/profile', icon: User, label: 'Профиль', end: true },
   ];
 
   const tabs = isStreamer ? streamerTabs : viewerTabs;
@@ -44,39 +33,32 @@ export function Layout() {
         <Outlet />
       </main>
 
-      {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-gray-900/80 backdrop-blur-xl border-t border-gray-800/50 z-50">
         <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
           {tabs.map((tab) => {
             const Icon = tab.icon;
-            const isActive = location.pathname === tab.path;
-            
+
             return (
-              <button
+              <NavLink
                 key={tab.path}
-                onClick={() => navigate(tab.path)}
-                className="relative flex flex-col items-center justify-center flex-1 h-full transition-colors"
+                to={tab.path}
+                end={tab.end}
+                className={({ isActive }) =>
+                  `relative flex flex-col items-center justify-center flex-1 h-full transition-colors ${
+                    isActive ? 'text-cyan-400' : 'text-gray-500'
+                  }`
+                }
               >
-                {isActive && (
-                  <div className="absolute inset-x-2 top-0 h-0.5 bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full transition-opacity duration-200" />
+                {({ isActive }) => (
+                  <>
+                    {isActive && (
+                      <div className="absolute inset-x-2 top-0 h-0.5 bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full" />
+                    )}
+                    <Icon className="w-5 h-5" />
+                    <span className="text-[10px] mt-1 font-medium">{tab.label}</span>
+                  </>
                 )}
-                <Icon
-                  className={`w-5 h-5 transition-colors ${
-                    isActive
-                      ? 'text-cyan-400'
-                      : 'text-gray-500 group-hover:text-gray-300'
-                  }`}
-                />
-                <span
-                  className={`text-[10px] mt-1 font-medium transition-colors ${
-                    isActive
-                      ? 'text-cyan-400'
-                      : 'text-gray-500'
-                  }`}
-                >
-                  {tab.label}
-                </span>
-              </button>
+              </NavLink>
             );
           })}
         </div>

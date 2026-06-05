@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { RouterProvider, type Router } from 'react-router';
+import { RouterProvider } from 'react-router';
 import { useTelegram } from './hooks/useTelegram';
 import { useAuth } from './hooks/useAuth';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { AuthPage } from './pages/AuthPage';
+import { router } from './routes';
 
 const WELCOME_SEEN_KEY = 'tipbot_welcome_seen';
 
@@ -24,7 +25,6 @@ function AuthenticatedApp() {
   const [showWelcome, setShowWelcome] = useState(() => {
     return localStorage.getItem(WELCOME_SEEN_KEY) !== 'true';
   });
-  const [appRouter, setAppRouter] = useState<Router | null>(null);
 
   useEffect(() => {
     if (telegram.isReady) {
@@ -33,24 +33,6 @@ function AuthenticatedApp() {
       console.log('[App] User:', telegram.user?.username);
     }
   }, [telegram.isReady, telegram.platform, telegram.user?.username]);
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setAppRouter(null);
-      return;
-    }
-
-    let cancelled = false;
-    import('./routes').then(({ router }) => {
-      if (!cancelled) {
-        setAppRouter(router);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isAuthenticated]);
 
   const handleWelcomeComplete = () => {
     localStorage.setItem(WELCOME_SEEN_KEY, 'true');
@@ -76,11 +58,7 @@ function AuthenticatedApp() {
     );
   }
 
-  if (!appRouter) {
-    return <AppLoader />;
-  }
-
-  return <RouterProvider router={appRouter} />;
+  return <RouterProvider router={router} />;
 }
 
 export default AuthenticatedApp;

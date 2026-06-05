@@ -1,13 +1,15 @@
 import { createHashRouter, Navigate } from 'react-router';
-import { Suspense, lazy } from 'react';
+import { Suspense } from 'react';
 import { Layout } from './components/Layout';
+import { RouteErrorPage } from './components/RouteErrorPage';
+import { lazyNamedWithRetry } from '@/shared/utils/lazyRetry';
 
-const Home = lazy(() => import('./pages/Home').then(m => ({ default: m.Home })));
-const StreamerPage = lazy(() => import('./pages/StreamerPage').then(m => ({ default: m.StreamerPage })));
-const Dashboard = lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
-const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
-const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.Profile })));
-const Widget = lazy(() => import('./pages/Widget').then(m => ({ default: m.Widget })));
+const Home = lazyNamedWithRetry(() => import('./pages/Home'), 'Home');
+const StreamerPage = lazyNamedWithRetry(() => import('./pages/StreamerPage'), 'StreamerPage');
+const Dashboard = lazyNamedWithRetry(() => import('./pages/Dashboard'), 'Dashboard');
+const Settings = lazyNamedWithRetry(() => import('./pages/Settings'), 'Settings');
+const Profile = lazyWithRetry(() => import('./pages/Profile'));
+const Widget = lazyNamedWithRetry(() => import('./pages/Widget'), 'Widget');
 
 function PageLoader() {
   return (
@@ -17,7 +19,7 @@ function PageLoader() {
   );
 }
 
-function LazyPage({ Component }: { Component: React.LazyExoticComponent<React.ComponentType<any>> }) {
+function LazyPage({ Component }: { Component: React.LazyExoticComponent<React.ComponentType<unknown>> }) {
   return (
     <Suspense fallback={<PageLoader />}>
       <Component />
@@ -28,6 +30,7 @@ function LazyPage({ Component }: { Component: React.LazyExoticComponent<React.Co
 export const router = createHashRouter([
   {
     path: '/',
+    errorElement: <RouteErrorPage />,
     Component: Layout,
     children: [
       { index: true, element: <LazyPage Component={Home} /> },
@@ -41,6 +44,7 @@ export const router = createHashRouter([
   },
   {
     path: 'widget/:streamToken',
+    errorElement: <RouteErrorPage />,
     element: <LazyPage Component={Widget} />,
   },
 ]);
