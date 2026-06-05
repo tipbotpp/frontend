@@ -12,41 +12,75 @@ export function AlertOverlay({ donation, onComplete }: AlertOverlayProps) {
   const [isVisible, setIsVisible] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const finishedRef = useRef(false);
 
   useEffect(() => {
+    finishedRef.current = false;
     setIsPlaying(true);
 
-    const timer = setTimeout(() => {
+    const minDurationMs = style.duration_sec * 1000;
+    const startedAt = Date.now();
+    let finishTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const finish = () => {
+      if (finishedRef.current) return;
+      finishedRef.current = true;
+
       setIsPlaying(false);
-      setTimeout(() => {
+      finishTimer = setTimeout(() => {
         setIsVisible(false);
         onComplete();
       }, 500);
-    }, style.duration_sec * 1000);
+    };
+
+    const scheduleFinish = () => {
+      const elapsed = Date.now() - startedAt;
+      const remaining = Math.max(0, minDurationMs - elapsed);
+      if (finishTimer) clearTimeout(finishTimer);
+      finishTimer = setTimeout(finish, remaining);
+    };
 
     if (donation.audio_url) {
-      const audio = new Audio(donation.audio_url);
-      audio.volume = 0.9;
-      audio.play().catch(() => {});
+      const audio = new Audio();
+      audio.preload = 'auto';
+      audio.src = donation.audio_url;
+      audio.volume = 1;
       audioRef.current = audio;
-    } else if (donation.message && 'speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(donation.message);
-      utterance.lang = 'ru-RU';
-      utterance.volume = 0.8;
-      speechSynthesis.speak(utterance);
+
+      audio.addEventListener('ended', scheduleFinish);
+      audio.addEventListener('error', () => {
+        console.warn('[Widget] Audio load/play error:', donation.audio_url);
+        scheduleFinish();
+      });
+
+      audio
+        .play()
+        .then(() => {
+          console.log('[Widget] Playing TTS audio');
+        })
+        .catch((err) => {
+          console.warn('[Widget] Audio autoplay blocked:', err);
+          scheduleFinish();
+        });
+
+      // Если metadata/ended не придут — не зависнуть
+      setTimeout(scheduleFinish, minDurationMs + 30_000);
+    } else {
+      scheduleFinish();
     }
 
     return () => {
-      clearTimeout(timer);
-      audioRef.current?.pause();
-      speechSynthesis.cancel();
+      if (finishTimer) clearTimeout(finishTimer);
+      const audio = audioRef.current;
+      if (audio) {
+        audio.pause();
+        audio.src = '';
+      }
+      audioRef.current = null;
     };
   }, [donation, style.duration_sec, onComplete]);
 
   if (!isVisible) return null;
-
-  const donorInitial =
-    donation.donor_name.trim()[0]?.toUpperCase() || '?';
 
   return (
     <AnimatePresence>
@@ -96,29 +130,10 @@ export function AlertOverlay({ donation, onComplete }: AlertOverlayProps) {
             />
 
             <div className="relative">
-              {(donation.image_url || donation.donor_name) && (
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.2, type: 'spring', stiffness: 300 }}
-                  className="w-20 h-20 mx-auto mb-4 rounded-full bg-white/20 flex items-center justify-center text-3xl font-bold border-2 border-white/30 overflow-hidden"
-                >
-                  {donation.image_url ? (
-                    <img
-                      src={donation.image_url}
-                      alt={donation.donor_name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    donorInitial
-                  )}
-                </motion.div>
-              )}
-
               <motion.p
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.3 }}
+                transition={{ delay: 0.2 }}
                 className="text-2xl font-semibold mb-3 opacity-90"
               >
                 {donation.donor_name}
@@ -127,7 +142,7 @@ export function AlertOverlay({ donation, onComplete }: AlertOverlayProps) {
               <motion.p
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ delay: 0.4, type: 'spring', stiffness: 300 }}
+                transition={{ delay: 0.3, type: 'spring', stiffness: 300 }}
                 className="text-7xl font-bold mb-4"
                 style={{ textShadow: `0 0 30px ${style.text_color}60` }}
               >
@@ -139,7 +154,7 @@ export function AlertOverlay({ donation, onComplete }: AlertOverlayProps) {
                 <motion.p
                   initial={{ y: -20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.5 }}
+                  transition={{ delay: 0.4 }}
                   className="text-xl opacity-90"
                 >
                   &ldquo;{donation.message}&rdquo;

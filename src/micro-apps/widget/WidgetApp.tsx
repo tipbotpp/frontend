@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { widgetApi } from './services/widgetApi';
 import { useWidgetSocket } from './hooks/useWidgetSocket';
+import { useObsAudioUnlock } from './hooks/useObsAudioUnlock';
 import { AlertQueue } from './components/AlertQueue';
 import type { WidgetConfig } from '@/shared/contracts/widget.contract';
 
@@ -21,6 +22,8 @@ export function WidgetApp({ streamToken, onReady, onError }: WidgetAppProps) {
     removeDonation,
     acknowledgeAlert,
   } = useWidgetSocket(config?.ws_url || null);
+
+  useObsAudioUnlock(isConnected);
 
   useEffect(() => {
     loadConfig();

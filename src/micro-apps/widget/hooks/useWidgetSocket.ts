@@ -106,6 +106,11 @@ export function useWidgetSocket(wsUrl: string | null) {
               case 'test_alert': {
                 const alert = parseAlertPayload(data);
                 if (alert) {
+                  if (alert.audio_url) {
+                    console.log('[Widget] Alert with audio:', alert.audio_url);
+                  } else if (alert.message) {
+                    console.warn('[Widget] Alert without audio_url — check TTS on backend');
+                  }
                   setDonations((prev) => [...prev, alert]);
                 }
                 break;
