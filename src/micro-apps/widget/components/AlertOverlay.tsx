@@ -11,8 +11,13 @@ export function AlertOverlay({ donation, onComplete }: AlertOverlayProps) {
   const { style } = donation;
   const [isVisible, setIsVisible] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const finishedRef = useRef(false);
+  const scheduleFinishRef = useRef<() => void>(() => {});
+  const onCompleteRef = useRef(onComplete);
+
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  });
 
   useEffect(() => {
     finishedRef.current = false;
@@ -25,11 +30,10 @@ export function AlertOverlay({ donation, onComplete }: AlertOverlayProps) {
     const finish = () => {
       if (finishedRef.current) return;
       finishedRef.current = true;
-
       setIsPlaying(false);
       finishTimer = setTimeout(() => {
         setIsVisible(false);
-        onComplete();
+        onCompleteRef.current();
       }, 500);
     };
 
@@ -40,45 +44,21 @@ export function AlertOverlay({ donation, onComplete }: AlertOverlayProps) {
       finishTimer = setTimeout(finish, remaining);
     };
 
-    if (donation.audio_url) {
-      const audio = new Audio();
-      audio.preload = 'auto';
-      audio.src = donation.audio_url;
-      audio.volume = 1;
-      audioRef.current = audio;
+    scheduleFinishRef.current = scheduleFinish;
 
-      audio.addEventListener('ended', scheduleFinish);
-      audio.addEventListener('error', () => {
-        console.warn('[Widget] Audio load/play error:', donation.audio_url);
-        scheduleFinish();
-      });
-
-      audio
-        .play()
-        .then(() => {
-          console.log('[Widget] Playing TTS audio');
-        })
-        .catch((err) => {
-          console.warn('[Widget] Audio autoplay blocked:', err);
-          scheduleFinish();
-        });
-
-      // Если metadata/ended не придут — не зависнуть
-      setTimeout(scheduleFinish, minDurationMs + 30_000);
-    } else {
+    if (!donation.audio_url) {
       scheduleFinish();
     }
 
+    // Подстраховка если audio никогда не завершится
+    const safetyTimer = setTimeout(finish, minDurationMs + 30_000);
+
     return () => {
+      clearTimeout(safetyTimer);
       if (finishTimer) clearTimeout(finishTimer);
-      const audio = audioRef.current;
-      if (audio) {
-        audio.pause();
-        audio.src = '';
-      }
-      audioRef.current = null;
     };
-  }, [donation, style.duration_sec, onComplete]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [donation.donation_id, style.duration_sec]);
 
   if (!isVisible) return null;
 
@@ -91,6 +71,17 @@ export function AlertOverlay({ donation, onComplete }: AlertOverlayProps) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
+          {donation.audio_url && (
+            <audio
+              key={donation.audio_url}
+              src={donation.audio_url}
+              autoPlay
+              onEnded={() => scheduleFinishRef.current()}
+              onError={() => scheduleFinishRef.current()}
+              style={{ display: 'none' }}
+            />
+          )}
+
           <motion.div
             initial={{ scale: 0, rotate: -10, opacity: 0 }}
             animate={{ scale: 1, rotate: 0, opacity: 1 }}
