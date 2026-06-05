@@ -18,7 +18,7 @@ function AppLoader() {
   );
 }
 
-export default function App() {
+function AuthenticatedApp() {
   const telegram = useTelegram();
   const { isAuthenticated, isLoading, error, checkAuth } = useAuth();
   const [showWelcome, setShowWelcome] = useState(() => {
@@ -82,3 +82,5 @@ export default function App() {
 
   return <RouterProvider router={appRouter} />;
 }
+
+export default AuthenticatedApp;
