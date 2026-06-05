@@ -8,7 +8,7 @@ const Home = lazyNamedWithRetry(() => import('./pages/Home'), 'Home');
 const StreamerPage = lazyNamedWithRetry(() => import('./pages/StreamerPage'), 'StreamerPage');
 const Dashboard = lazyNamedWithRetry(() => import('./pages/Dashboard'), 'Dashboard');
 const Settings = lazyNamedWithRetry(() => import('./pages/Settings'), 'Settings');
-const Profile = lazyWithRetry(() => import('./pages/Profile'));
+const Profile = lazyNamedWithRetry(() => import('./pages/Profile'), 'Profile');
 const Widget = lazyNamedWithRetry(() => import('./pages/Widget'), 'Widget');
 
 function PageLoader() {
