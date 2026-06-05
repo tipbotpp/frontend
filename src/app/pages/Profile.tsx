@@ -36,6 +36,13 @@ export function Profile() {
   const balance = balanceData?.balance || 0;
   const isLoading = userLoading || balanceLoading || donationsLoading;
 
+  // Определяем роль пользователя
+  const isStreamer = user?.role === 'streamer';
+
+  // Для стримера считаем сумму полученных донатов
+  const totalIncomingDonations = donations.reduce((sum: number, d: DonationHistoryItem) => sum + d.amount, 0);
+  const donationCount = donations.length;
+
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('ru-RU', {
       day: '2-digit',
@@ -66,9 +73,6 @@ export function Profile() {
       default: return status;
     }
   };
-
-  const totalDonations = donations.reduce((sum: number, d: DonationHistoryItem) => sum + d.amount, 0);
-  const donationCount = donations.length;
 
   if (isLoading) {
     return (
@@ -111,12 +115,12 @@ export function Profile() {
                 </h1>
                 <Badge
                   className={`mt-1.5 text-xs ${
-                    user?.role === 'streamer'
+                    isStreamer
                       ? 'bg-gradient-to-r from-indigo-500/20 to-purple-500/20 text-indigo-400 border-indigo-500/30'
                       : 'bg-gradient-to-r from-cyan-500/20 to-teal-500/20 text-cyan-400 border-cyan-500/30'
                   }`}
                 >
-                  {user?.role === 'streamer' ? 'Стример' : 'Зритель'}
+                  {isStreamer ? 'Стример' : 'Зритель'}
                 </Badge>
               </div>
             </div>
@@ -159,7 +163,7 @@ export function Profile() {
                     text-gray-400 hover:text-gray-200"
                 >
                   <ArrowUpRight className="w-4 h-4" />
-                  Донаты
+                  {isStreamer ? 'Получено' : 'Донаты'}
                   {donationCount > 0 && (
                     <span className="ml-1 px-1.5 py-0.5 rounded-full bg-white/20 text-xs font-bold">
                       {donationCount}
@@ -191,8 +195,14 @@ export function Profile() {
                         <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-gray-800/50 flex items-center justify-center">
                           <ArrowUpRight className="w-7 h-7 text-gray-600" />
                         </div>
-                        <p className="text-gray-400 text-sm">Донатов пока нет</p>
-                        <p className="text-gray-600 text-xs mt-1">Отправьте первый донат стримеру</p>
+                        <p className="text-gray-400 text-sm">
+                          {isStreamer ? 'Донатов пока нет' : 'Донатов пока нет'}
+                        </p>
+                        <p className="text-gray-600 text-xs mt-1">
+                          {isStreamer
+                            ? 'Как только зрители отправят донаты, они появятся здесь'
+                            : 'Отправьте первый донат стримеру'}
+                        </p>
                       </motion.div>
                     ) : (
                       <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
@@ -208,12 +218,22 @@ export function Profile() {
                                 <div className="flex items-start justify-between gap-2 mb-1.5">
                                   <div className="flex-1 min-w-0">
                                     <p className="font-medium text-white text-sm truncate">
-                                      {donation.to_streamer?.username || 'Стример'}
+                                      {/* Для стримера показываем имя отправителя, для зрителя — получателя */}
+                                      {isStreamer
+                                        ? (donation.from_user?.username || 'Зритель')
+                                        : (donation.to_streamer?.username || 'Стример')}
                                     </p>
                                     <p className="text-xs text-gray-500 mt-0.5">{formatDate(donation.created_at)}</p>
                                   </div>
                                   <div className="text-right flex-shrink-0">
-                                    <p className="text-base font-bold text-red-400">-{donation.amount}</p>
+                                    {/* Отображение суммы: для стримера +, для зрителя - */}
+                                    <p
+                                      className={`text-base font-bold ${
+                                        isStreamer ? 'text-green-400' : 'text-red-400'
+                                      }`}
+                                    >
+                                      {isStreamer ? `+${donation.amount}` : `-${donation.amount}`}
+                                    </p>
                                     <Badge className={`text-[10px] px-1.5 py-0 ${getStatusColor(donation.status)}`}>
                                       {getStatusText(donation.status)}
                                     </Badge>
@@ -236,19 +256,38 @@ export function Profile() {
                 </TabsContent>
 
                 <TabsContent value="stats" className="space-y-3 mt-0">
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+                  >
+                    {/* Статистическая карточка для донатов (отправленных или полученных) */}
                     <Card className="bg-gray-800/40 backdrop-blur-sm border-gray-700/30 relative overflow-hidden">
                       <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-transparent" />
                       <CardContent className="p-4 sm:p-5 relative">
                         <div className="flex items-center gap-2 mb-3">
-                          <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
-                            <ArrowUpRight className="w-4 h-4 text-red-400" />
+                          <div
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                              isStreamer ? 'bg-green-500/10' : 'bg-red-500/10'
+                            }`}
+                          >
+                            <ArrowUpRight
+                              className={`w-4 h-4 ${isStreamer ? 'text-green-400' : 'text-red-400'}`}
+                            />
                           </div>
-                          <span className="text-gray-500 text-xs sm:text-sm">Отправлено</span>
+                          <span className="text-gray-500 text-xs sm:text-sm">
+                            {isStreamer ? 'Получено' : 'Отправлено'}
+                          </span>
                         </div>
-                        <p className="text-2xl sm:text-3xl font-bold text-red-400">
-                          {totalDonations.toLocaleString()}
-                          <span className="text-xs text-red-500/70 font-normal ml-1">coins</span>
+                        <p className={`text-2xl sm:text-3xl font-bold ${isStreamer ? 'text-green-400' : 'text-red-400'}`}>
+                          {totalIncomingDonations.toLocaleString()}
+                          <span
+                            className={`text-xs font-normal ml-1 ${
+                              isStreamer ? 'text-green-500/70' : 'text-red-500/70'
+                            }`}
+                          >
+                            coins
+                          </span>
                         </p>
                       </CardContent>
                     </Card>
@@ -260,11 +299,9 @@ export function Profile() {
                           <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center">
                             <TrendingUp className="w-4 h-4 text-green-400" />
                           </div>
-                          <span className="text-gray-500 text-xs sm:text-sm">Донатов</span>
+                          <span className="text-gray-500 text-xs sm:text-sm">Операций</span>
                         </div>
-                        <p className="text-2xl sm:text-3xl font-bold text-green-400">
-                          {donationCount}
-                        </p>
+                        <p className="text-2xl sm:text-3xl font-bold text-green-400">{donationCount}</p>
                       </CardContent>
                     </Card>
 
@@ -280,7 +317,7 @@ export function Profile() {
                           {[
                             { label: 'ID', value: user?.id ?? '—' },
                             { label: 'Telegram ID', value: user?.telegram_id ?? '—' },
-                            { label: 'Роль', value: user?.role === 'streamer' ? 'Стример' : 'Зритель' },
+                            { label: 'Роль', value: isStreamer ? 'Стример' : 'Зритель' },
                             { label: 'Регистрация', value: user?.created_at ? formatDate(user.created_at) : '—' },
                           ].map((item) => (
                             <div
